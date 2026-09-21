@@ -81,6 +81,7 @@ export function Warehouse({
     [map, setMap] = useState({ code: 0, name: 1, location: 2, copies: 3 });
   const [customPaper, setCustomPaper] = useState(false);
   const [settingsHidden, setSettingsHidden] = useState(false);
+  const [wide, setWide] = useState(false);
   const grid = useRef<HTMLDivElement>(null);
   const drag = useRef<{ pointer: number; x: number; width: number } | null>(
     null,
@@ -433,11 +434,28 @@ export function Warehouse({
     setMetricsError(overflow ? t("barcodeError") : "");
   };
   return (
-    <section className="hm-root wh-root" dir={isRTL(language) ? "rtl" : "ltr"}>
+    <section className="hm-root wh-root" data-wide={!desktop && wide} dir={isRTL(language) ? "rtl" : "ltr"}>
       <div className="hm-heading">
         <div>
           <p className="hm-eyebrow">BARCODEMATE</p>
-          <h1>{t("warehouse")}</h1>
+          <div className="wh-heading-title">
+            {!desktop && (
+              <button
+                type="button"
+                className="wh-width-toggle"
+                onClick={() => setWide((value) => !value)}
+                aria-pressed={wide}
+                aria-label={t(wide ? "standardWidth" : "fullWidth")}
+                title={t(wide ? "standardWidth" : "fullWidth")}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 4v16M21 4v16" />
+                  <path d={wide ? "M5 12h5m-3-3 3 3-3 3m12-3h-5m3-3-3 3 3 3" : "M10 12H5m3-3-3 3 3 3m6-3h5m-3-3 3 3-3 3"} />
+                </svg>
+              </button>
+            )}
+            <h1>{t("warehouse")}</h1>
+          </div>
           <p>{t("warehouseDescription")}</p>
         </div>
         <div className="hm-actions">

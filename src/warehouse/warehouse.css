@@ -2,6 +2,43 @@
   padding: 24px;
   max-width: none;
 }
+/* Reuse the website's Generator container; expansion is an explicit view choice. */
+.wh-page:has(.wh-root[data-wide="true"]) {
+  max-width: none;
+}
+.wh-page .hm-breadcrumb {
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+.wh-page .wh-root {
+  padding-inline: 0;
+}
+.wh-heading-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wh-heading-title h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wh-root .wh-width-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  min-height: 34px;
+  padding: 5px;
+  border-color: transparent;
+  background: transparent;
+  color: #5c6d63;
+}
+.wh-root .wh-width-toggle:hover {
+  background: #e5eedf;
+  color: #285b44;
+}
 .wh-root fieldset {
   margin: 0;
   padding: 0;
