@@ -30,6 +30,8 @@ export type WarehouseProject = {
   lists: { shelf: Item[]; sku: Item[] };
   paper: Paper;
   format: "auto" | "code128" | "qrcode";
+  // width is accepted only for older local projects/backups; new edits use dots.
+  symbolSize: { moduleDots?: number; width?: number; height: number } | null;
   dpi: number;
   offsetX: number;
   offsetY: number;
@@ -164,6 +166,29 @@ export const presets: Record<string, Paper> = {
 export function normalizePaper(p: Paper): Paper {
   return { ...p };
 }
+// Opposite margins are the actual remaining space, not another independent
+// dimension that could disagree with the stock and die-cut label geometry.
+const marginPrecision = (n: number) => Math.round(n * 1_000_000) / 1_000_000;
+export function paperMargins(p: Paper) {
+  return {
+    right: marginPrecision(
+      p.pageWidth - p.left - p.columns * p.width - (p.columns - 1) * p.gapX,
+    ),
+    bottom: marginPrecision(
+      p.pageHeight - p.top - p.rows * p.height - (p.rows - 1) * p.gapY,
+    ),
+  };
+}
+export function setOppositeMargin(
+  p: Paper,
+  edge: "right" | "bottom",
+  value: number,
+): Paper {
+  const margins = paperMargins(p);
+  return edge === "right"
+    ? { ...p, left: marginPrecision(p.left + margins.right - value) }
+    : { ...p, top: marginPrecision(p.top + margins.bottom - value) };
+}
 export function validPaper(input: Paper): Paper {
   if (!input || !["sheet", "roll"].includes(input.medium)) bad("paperError");
   const p = normalizePaper(input);
@@ -180,12 +205,8 @@ export function validPaper(input: Paper): Paper {
     p.columns * p.rows > 1000
   )
     bad("paperError");
-  if (
-    p.left + p.columns * p.width + (p.columns - 1) * p.gapX >
-      p.pageWidth + 0.001 ||
-    p.top + p.rows * p.height + (p.rows - 1) * p.gapY > p.pageHeight + 0.001
-  )
-    bad("paperError");
+  const margins = paperMargins(p);
+  if (margins.right < -0.001 || margins.bottom < -0.001) bad("paperError");
   return {
     medium: p.medium,
     pageWidth: p.pageWidth,
@@ -219,6 +240,7 @@ export function newWarehouse(): WarehouseProject {
     },
     paper: { ...presets.a4 },
     format: "auto",
+    symbolSize: null,
     dpi: 300,
     offsetX: 0,
     offsetY: 0,
@@ -237,6 +259,16 @@ export function validateProject(p: WarehouseProject): WarehouseProject {
   )
     bad();
   const paper = validPaper(p.paper);
+  // Projects saved before manual symbol sizing retain the existing automatic fit.
+  const symbolSize = p.symbolSize == null ? null : p.symbolSize;
+  if (
+    symbolSize !== null &&
+    (!(symbolSize.moduleDots !== undefined
+      ? number(symbolSize.moduleDots, 1, 256, true)
+      : number(symbolSize.width, 1, 600)) ||
+      !number(symbolSize.height, 1, 600))
+  )
+    bad("symbolSizeError");
   if (
     !number(p.offsetX, -600, 600) ||
     !number(p.offsetY, -600, 600) ||
@@ -276,18 +308,42 @@ export function validateProject(p: WarehouseProject): WarehouseProject {
       location,
       copies,
     }));
-  return {
+  const normalized: WarehouseProject = {
     schema: p.schema,
     printer: p.printer,
     mode: p.mode,
     lists: { shelf: clean(p.lists.shelf), sku: clean(p.lists.sku) },
     paper,
     format: p.format,
+    symbolSize: symbolSize && {
+      ...(symbolSize.moduleDots !== undefined
+        ? { moduleDots: symbolSize.moduleDots }
+        : { width: symbolSize.width }),
+      height: symbolSize.height,
+    },
     dpi: p.dpi,
     offsetX: p.offsetX,
     offsetY: p.offsetY,
     start: p.start,
   };
+  // Preserve the first label's module size when opening the earlier local
+  // width-limit setting. Subsequent edits and backups use explicit dots.
+  if (normalized.symbolSize?.width !== undefined) {
+    const first = normalized.lists[normalized.mode].find(
+      (item) => item.copies > 0,
+    );
+    if (first) {
+      try {
+        normalized.symbolSize = {
+          moduleDots: labelSymbol(first, normalized).moduleDots,
+          height: normalized.symbolSize.height,
+        };
+      } catch {
+        // Keep an invalid legacy setting visible until the user corrects it.
+      }
+    }
+  }
+  return normalized;
 }
 export function parseImport(input: string): string[][] {
   if (input.length > 2_000_000) bad("importError");
@@ -337,7 +393,18 @@ export function dotsPerMm(dpi: number) {
   if (dpi === 300) return 12;
   return bad("dpiError");
 }
-const cache = new Map<string, { html: string; svg: string; format: string }>();
+type LabelSymbol = {
+  html: string;
+  svg: string;
+  codeSvg: string;
+  format: string;
+  widthMm: number;
+  heightMm: number;
+  moduleDots: number;
+  availableWidth: number;
+  availableHeight: number;
+};
+const cache = new Map<string, LabelSymbol>();
 export function labelSymbol(item: Item, p: WarehouseProject) {
   const key = JSON.stringify([
     item.code,
@@ -348,6 +415,7 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
     p.format,
     p.dpi,
     p.printer,
+    p.symbolSize,
   ]);
   const hit = cache.get(key);
   if (hit) return hit;
@@ -377,8 +445,17 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
   const available = h - titleHeight - footerHeight - 0.8;
   if (available < 4) bad("barcodeError", item.code);
   const options = p.format === "auto" ? ["code128", "qrcode"] : [p.format];
+  let overflow = false;
+  let narrowModule = false;
   for (const format of options) {
     try {
+      const targetWidth = p.symbolSize?.width ?? w;
+      // QR stays square; its width setting is a side-length limit. A stored
+      // linear-code height must not distort or constrain it after switching.
+      const targetHeight =
+        (format === "qrcode" ? p.symbolSize?.width : p.symbolSize?.height) ??
+        available;
+      if (targetHeight < 4) continue;
       const dpi = p.printer === "zebra" ? dotsPerMm(p.dpi) * 25.4 : p.dpi;
       const minScale =
         format === "qrcode"
@@ -386,9 +463,14 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
           : Math.max(1, Math.round((0.25 * dpi) / 25.4));
       // Grow the encoded symbol in whole printer dots, including quiet zones.
       // Changing the label width must grow its contents, not just its white canvas.
-      const atScale = (scale: number) => {
+      const atScale = (scale: number, halfQrGrid = false) => {
         // bwip QR uses two device pixels per module at scale 1; Code 128 uses one.
-        const moduleDots = scale * (format === "qrcode" ? 2 : 1);
+        // For explicit QR dot counts, encode on a doubled grid. Each module
+        // then lands on exactly the requested number of native printer dots,
+        // including odd counts, without resampling a bitmap.
+        const renderDpi = dpi * (halfQrGrid ? 2 : 1);
+        const moduleDots =
+          (scale * (format === "qrcode" ? 2 : 1)) / (halfQrGrid ? 2 : 1);
         return encode({
           ...defaultDesign(),
           type: format,
@@ -397,34 +479,58 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
           showText: false,
           // bwip validates textsize even when the caption is disabled.
           textSize: 5,
-          height: Math.min(300, available - 1),
-          module: (scale * 25.4) / dpi,
-          dpi,
+          height: Math.min(300, targetHeight - 1),
+          module: (scale * 25.4) / renderDpi,
+          dpi: renderDpi,
           quietX: ((moduleDots * 25.4) / dpi) * (format === "qrcode" ? 4 : 10),
           quietY: format === "qrcode" ? ((moduleDots * 25.4) / dpi) * 4 : 0.4,
           foreground: "#000000",
           background: "#ffffff",
         });
       };
-      let s = atScale(minScale);
-      if (s.widthMm > w + 0.001 || s.heightMm > available + 0.001) continue;
-      const maxScale = Math.floor(
-        Math.min(
-          (minScale * w) / s.widthMm,
-          format === "qrcode" ? (minScale * available) / s.heightMm : Infinity,
-          // Encoder limits: module <= 5 mm and quiet zones <= 40 mm.
-          (dpi / 25.4) * (format === "qrcode" ? 5 : 4),
-        ),
-      );
-      for (let scale = maxScale; scale > minScale; scale--) {
-        const candidate = atScale(scale);
+      const requestedDots = p.symbolSize?.moduleDots;
+      if (
+        requestedDots !== undefined &&
+        requestedDots < minScale * (format === "qrcode" ? 2 : 1)
+      ) {
+        narrowModule = true;
+        continue;
+      }
+      let s;
+      if (requestedDots !== undefined) {
+        s = atScale(requestedDots, format === "qrcode");
+      } else {
+        s = atScale(minScale);
         if (
-          candidate.widthMm <= w + 0.001 &&
-          candidate.heightMm <= available + 0.001
-        ) {
-          s = candidate;
-          break;
+          s.widthMm > targetWidth + 0.001 ||
+          s.heightMm > targetHeight + 0.001
+        )
+          continue;
+        const maxScale = Math.floor(
+          Math.min(
+            (minScale * targetWidth) / s.widthMm,
+            format === "qrcode"
+              ? (minScale * targetHeight) / s.heightMm
+              : Infinity,
+            // Encoder limits: module <= 5 mm and quiet zones <= 40 mm.
+            (dpi / 25.4) * (format === "qrcode" ? 5 : 4),
+          ),
+        );
+        for (let scale = maxScale; scale > minScale; scale--) {
+          const candidate = atScale(scale);
+          if (
+            candidate.widthMm <= targetWidth + 0.001 &&
+            candidate.heightMm <= targetHeight + 0.001
+          ) {
+            s = candidate;
+            break;
+          }
         }
+      }
+      // Do not silently shrink an oversized custom symbol to the label.
+      if (s.widthMm > w + 0.001 || s.heightMm > available + 0.001) {
+        overflow = true;
+        continue;
       }
       const dpmm = dpi / 25.4,
         align = (mm: number) => Math.round(mm * dpmm) / dpmm;
@@ -438,7 +544,18 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
       ) =>
         `<text class="ink ${cls}" x="${labelWidth / 2}" y="${baseline}" font-size="${size}" font-weight="${cls === "title" ? 700 : 400}" text-anchor="middle" direction="${/[\u0590-\u08ff]/.test(value) ? "rtl" : "ltr"}" unicode-bidi="plaintext">${xml(value)}</text>`;
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${labelWidth}mm" height="${labelHeight}mm" viewBox="0 0 ${labelWidth} ${labelHeight}" style="overflow:visible" font-family="Arial, sans-serif" fill="#000">${text(title, pad + font, font, "title")}<svg class="ink barcode" x="${x}" y="${y}" width="${s.widthMm}" height="${s.heightMm}" viewBox="0 0 ${s.width} ${s.height}">${s.svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</svg>${item.name ? text(item.code, labelHeight - pad - (item.location ? footerLine : 0) - footerFont * 0.28, footerFont, "code") : ""}${item.location ? text(item.location, labelHeight - pad - footerFont * 0.28, footerFont, "location") : ""}</svg>`;
-      const result = { html: svg, svg, format };
+      const result = {
+        html: svg,
+        svg,
+        codeSvg: s.svg,
+        format,
+        widthMm: s.widthMm,
+        heightMm: s.heightMm,
+        moduleDots:
+          requestedDots ?? s.pixelsPerModule * (format === "qrcode" ? 2 : 1),
+        availableWidth: w,
+        availableHeight: available,
+      };
       if (cache.size > 2000) cache.clear();
       cache.set(key, result);
       return result;
@@ -446,7 +563,16 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
       if (e instanceof WarehouseError) throw e;
     }
   }
-  return bad("barcodeError", item.code);
+  return bad(
+    overflow
+      ? "symbolSizeOverflow"
+      : narrowModule
+        ? "symbolModuleTooSmall"
+        : p.symbolSize
+          ? "symbolSizeError"
+          : "barcodeError",
+    item.code,
+  );
 }
 // Build the first physical page without changing quantities or the saved project.
 export function sampleProject(input: WarehouseProject): WarehouseProject {

@@ -1,5 +1,6 @@
 .wh-root {
   padding: 24px;
+  max-width: none;
 }
 .wh-root fieldset {
   margin: 0;
@@ -82,6 +83,39 @@
 .wh-diagnostics {
   margin-top: 12px;
 }
+.wh-symbol-size {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #d7dfdb;
+}
+.wh-symbol-size > .wh-fields {
+  margin-top: 10px;
+}
+.wh-symbol-size > h3 {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+.wh-code-preview {
+  margin-top: 16px;
+}
+.wh-code-preview h4 {
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.wh-code-image {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #d7dfdb;
+  border-radius: 8px;
+}
+.wh-code-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+}
 .wh-check-status {
   font-weight: 600;
 }
@@ -141,22 +175,69 @@
 }
 .wh-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, var(--wh-editor-width, 1fr)) 20px minmax(
+      0,
+      1fr
+    );
+  gap: 0;
   align-items: start;
 }
 .wh-preview-panel {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   position: sticky;
   top: 16px;
   min-width: 0;
+}
+.wh-grid[data-settings-hidden="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.wh-grid[data-settings-hidden="true"] .wh-preview-panel {
+  grid-column: 1;
 }
 .wh-editor {
   grid-column: 1;
   grid-row: 1;
   display: grid;
   gap: 16px;
+}
+.wh-splitter {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  position: relative;
+  border-radius: 6px;
+}
+.wh-splitter > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 50vh;
+  z-index: 1;
+  width: 32px;
+  height: 28px;
+  margin-inline: -6px;
+  border: 1px solid #cbd7cc;
+  border-radius: 7px;
+  background: #fff;
+  color: #5c6d63;
+}
+.wh-splitter:hover > span,
+.wh-splitter:focus-visible > span {
+  background: #e5eedf;
+  border-color: #416d51;
+  color: #285b44;
+}
+.hm-root .wh-splitter:focus-visible {
+  outline: none;
+}
+.wh-splitter:focus-visible > span {
+  outline: 2px solid #416d51;
+  outline-offset: 2px;
 }
 .wh-panel {
   background: #fff;
@@ -221,20 +302,59 @@
 }
 .wh-preview-heading {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
   align-items: baseline;
 }
 .wh-preview-heading span {
+  margin-inline-start: auto;
   font-size: 11px;
   color: #5c6d63;
+}
+.wh-screen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.wh-screen-width {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-end: auto;
+}
+.wh-root .wh-screen-controls button {
+  padding: 5px 10px;
+  min-height: 32px;
+}
+.wh-root .wh-screen-controls .wh-layout-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  min-height: 28px;
+  padding: 2px;
+  border-color: transparent;
+  background: transparent;
+  color: #5c6d63;
+}
+.wh-root .wh-screen-controls .wh-layout-toggle:hover {
+  background: #e5eedf;
+  color: #285b44;
+}
+.wh-preview:focus-visible {
+  outline: 2px solid #416d51;
+  outline-offset: 2px;
 }
 .wh-preview {
   padding: 16px;
   overflow: auto;
   background: #e9eee8;
   border-radius: 7px;
-  max-height: 65vh;
   direction: ltr;
 }
 .wh-preview > div {
@@ -246,6 +366,7 @@
 }
 .wh-preview-roll {
   background: #eef2ef;
+  max-height: 65vh;
 }
 .wh-preview.wh-preview-roll iframe {
   background: transparent;
@@ -277,6 +398,11 @@
 }
 .wh-root .wh-notice {
   margin-bottom: 16px;
+}
+.wh-error {
+  color: #922f2f;
+  background: #fff2f2;
+  border-color: #dcafaf;
 }
 .wh-root .hm-hint {
   font-size: 12px;
@@ -354,6 +480,10 @@
   }
   .wh-grid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .wh-splitter {
+    display: none;
   }
   .wh-preview-panel {
     grid-column: 1;
@@ -364,7 +494,7 @@
     grid-column: 1;
     grid-row: 2;
   }
-  .wh-preview {
+  .wh-preview-roll {
     max-height: 48vh;
   }
   .wh-printer-options {

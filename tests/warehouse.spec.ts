@@ -68,7 +68,8 @@ test("warehouse navigation, native PDF, CSV mapping, ZPL and isolated TCP delive
     expect(Math.abs(Number(mediaBox[2]) - (297 * 72) / 25.4)).toBeLessThan(1);
     await p.locator(".wh-paper-settings summary").click();
     await p.locator("[data-field=offsetX] input").fill("-50");
-    await expect(p.locator(".wh-error")).toContainText("outside");
+    await expect(p.locator(".wh-preview-panel .wh-error")).toContainText("outside");
+    await expect(p.getByTestId("warehouse-code-preview").getByRole("alert")).toContainText("outside");
     await expect(preview.locator(".label")).toHaveCount(12);
     await expect(
       p.getByRole("button", { name: "Print All", exact: true }),

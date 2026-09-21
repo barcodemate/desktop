@@ -4,11 +4,14 @@ import {
   validateProject,
   renderWarehouse,
   sampleProject,
+  labelSymbol,
   parseImport,
   importItems,
   shelfItems,
   presets,
   normalizePaper,
+  paperMargins,
+  setOppositeMargin,
   STORE,
   WarehouseError,
   type WarehouseProject,
@@ -26,6 +29,9 @@ import type { DesktopAPI } from "../bridge";
 import "../home/home.css";
 import "./warehouse.css";
 const LAYOUT_VERSION = `${STORE}.layout-version`;
+const SCREEN_SCALE = `${STORE}.screen-scale.v1`;
+const EDITOR_WIDTH = `${STORE}.editor-width.v1`;
+const MIN_EDITOR_WIDTH = 360;
 const sample =
   "code,name,location,copies\n000123,Widget,A-01-01,2\nSKU-002,Box,A-01-02,1\n";
 export function Warehouse({
@@ -74,6 +80,42 @@ export function Warehouse({
     [header, setHeader] = useState(true),
     [map, setMap] = useState({ code: 0, name: 1, location: 2, copies: 3 });
   const [customPaper, setCustomPaper] = useState(false);
+  const [settingsHidden, setSettingsHidden] = useState(false);
+  const grid = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ pointer: number; x: number; width: number } | null>(
+    null,
+  );
+  const [gridWidth, setGridWidth] = useState(0);
+  const [editorWidth, setEditorWidth] = useState<number | null>(() => {
+    try {
+      const saved = Number(localStorage.getItem(EDITOR_WIDTH));
+      return Number.isFinite(saved) && saved >= MIN_EDITOR_WIDTH ? saved : null;
+    } catch {
+      return null;
+    }
+  });
+  // Keep room for the preview while retaining the preferred width on smaller screens.
+  const maxEditorWidth = Math.max(MIN_EDITOR_WIDTH, gridWidth - 380);
+  const clampEditorWidth = (width: number) =>
+    Math.round(Math.min(maxEditorWidth, Math.max(MIN_EDITOR_WIDTH, width)));
+  const displayedEditorWidth = clampEditorWidth(
+    editorWidth ?? (gridWidth - 20) / 2,
+  );
+  useEffect(() => {
+    const el = grid.current;
+    if (!el) return;
+    const resize = () => setGridWidth(el.clientWidth);
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+    resize();
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    try {
+      if (editorWidth === null) localStorage.removeItem(EDITOR_WIDTH);
+      else localStorage.setItem(EDITOR_WIDTH, String(editorWidth));
+    } catch {}
+  }, [editorWidth]);
   const paperSettings = useRef<HTMLDetailsElement>(null);
   useEffect(() => setCustomPaper(false), [project.paper]);
   const frame = useRef<HTMLIFrameElement>(null),
@@ -85,6 +127,21 @@ export function Warehouse({
   const [undoCount, setUndoCount] = useState(0);
   const [scale, setScale] = useState(0.8),
     [metricsError, setMetricsError] = useState("");
+  const [screenScale, setScreenScale] = useState<number | null>(() => {
+    try {
+      const saved = Number(localStorage.getItem(SCREEN_SCALE));
+      return saved >= 0.05 && saved <= 4 ? saved : null;
+    } catch {
+      return null;
+    }
+  });
+  const displayScale = screenScale ?? scale;
+  useEffect(() => {
+    try {
+      if (screenScale === null) localStorage.removeItem(SCREEN_SCALE);
+      else localStorage.setItem(SCREEN_SCALE, String(screenScale));
+    } catch {}
+  }, [screenScale]);
   const fail = (e: unknown) => {
     const key =
       e instanceof WarehouseError
@@ -113,6 +170,7 @@ export function Warehouse({
     change({ ...project, ...part });
   const updatePaper = (part: Partial<Paper>) =>
     patch({ paper: { ...project.paper, ...part }, start: 0 });
+  const margins = paperMargins(project.paper);
   const updateItems = (items: Item[]) =>
     patch({ lists: { ...project.lists, [project.mode]: items } });
   const rows = project.lists[project.mode];
@@ -131,11 +189,26 @@ export function Warehouse({
     }
   }, [project, page, language]);
   const view = result.view;
+  const firstSymbol = useMemo(() => {
+    try {
+      const p = validateProject(project);
+      const item = p.lists[p.mode].find((item) => item.copies > 0);
+      return item ? labelSymbol(item, p) : null;
+    } catch {
+      return null;
+    }
+  }, [project]);
   const singleRowRoll = view?.paper.medium === "roll" && view.paper.rows === 1;
   // An iframe's viewport uses whole CSS pixels. Round up so fractional mm sizes
   // cannot trigger a scrollbar that then steals space from the other axis.
   const previewWidth = Math.ceil(((view?.displayWidth ?? 0) * 96) / 25.4);
   const previewHeight = Math.ceil(((view?.displayHeight ?? 0) * 96) / 25.4);
+  const adjustScreenWidth = (pixels: number) => {
+    if (!previewWidth) return;
+    setScreenScale((current) =>
+      Math.min(4, Math.max(0.05, (current ?? scale) + pixels / previewWidth)),
+    );
+  };
   useEffect(() => {
     setStored(false);
     try {
@@ -333,6 +406,7 @@ export function Warehouse({
             "rows",
             "skip",
             "port",
+            "moduleDots",
           ].includes(key)}
         />
       </span>
@@ -511,7 +585,16 @@ export function Warehouse({
           />
         )}
       </fieldset>
-      <div className="wh-grid">
+      <div
+        className="wh-grid"
+        ref={grid}
+        data-settings-hidden={settingsHidden}
+        style={
+          {
+            "--wh-editor-width": `${displayedEditorWidth}px`,
+          } as React.CSSProperties
+        }
+      >
         <aside className="wh-preview-panel">
           <div className="wh-panel">
             <div className="wh-preview-heading">
@@ -524,27 +607,124 @@ export function Warehouse({
                 mm
               </span>
             </div>
+            <div className="wh-screen-controls">
+              <div className="wh-screen-width">
+                <button
+                  type="button"
+                  className="wh-layout-toggle"
+                  aria-label={t(settingsHidden ? "twoColumns" : "oneColumn")}
+                  title={t(settingsHidden ? "twoColumns" : "oneColumn")}
+                  aria-expanded={!settingsHidden}
+                  aria-controls="warehouse-settings"
+                  onClick={() => setSettingsHidden((hidden) => !hidden)}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    {settingsHidden ? (
+                      <>
+                        <path d="M10 4v16" />
+                        <path
+                          d="M5 5h4v14H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"
+                          fill="currentColor"
+                          fillOpacity="0.14"
+                          stroke="none"
+                        />
+                      </>
+                    ) : (
+                      <rect
+                        x="6"
+                        y="7"
+                        width="12"
+                        height="10"
+                        rx="0.5"
+                        fill="currentColor"
+                        fillOpacity="0.14"
+                        stroke="none"
+                      />
+                    )}
+                  </svg>
+                </button>
+                <span>
+                  {t("screenWidth")} · {Math.round(previewWidth * displayScale)}{" "}
+                  px
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label={t("screenNarrower")}
+                disabled={!view}
+                onClick={() => adjustScreenWidth(-1)}
+              >
+                −
+              </button>
+              <button
+                type="button"
+                aria-label={t("screenWider")}
+                disabled={!view}
+                onClick={() => adjustScreenWidth(1)}
+              >
+                +
+              </button>
+              <button type="button" onClick={() => setScreenScale(null)}>
+                {t("screenFit")}
+              </button>
+            </div>
+            <p className="hm-hint" id="warehouse-screen-help">
+              {t("screenHelp")}
+            </p>
             <div
               className={`wh-preview${view?.paper.medium === "roll" ? " wh-preview-roll" : ""}`}
               ref={surface}
+              role="group"
+              tabIndex={0}
+              aria-label={t("screenPreview")}
+              aria-describedby="warehouse-screen-help"
+              onClick={(e) => e.currentTarget.focus({ preventScroll: true })}
+              onKeyDown={(e) => {
+                if (
+                  e.target !== e.currentTarget ||
+                  e.altKey ||
+                  e.ctrlKey ||
+                  e.metaKey
+                )
+                  return;
+                if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                  e.preventDefault();
+                  adjustScreenWidth(
+                    (e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 10 : 1),
+                  );
+                }
+              }}
             >
               <div
                 style={{
-                  width: previewWidth * scale,
-                  height: previewHeight * scale,
+                  width: previewWidth * displayScale,
+                  height: previewHeight * displayScale,
                 }}
               >
                 {view && (
                   <iframe
                     ref={frame}
                     title={t("preview")}
+                    tabIndex={-1}
                     sandbox="allow-same-origin"
                     srcDoc={view.html}
                     onLoad={() => void inspectPreview()}
                     style={{
                       width: previewWidth,
                       height: previewHeight,
-                      transform: `scale(${scale})`,
+                      transform: `scale(${displayScale})`,
+                      pointerEvents: "none",
                     }}
                   />
                 )}
@@ -631,7 +811,89 @@ export function Warehouse({
             </div>
           </div>
         </aside>
-        <fieldset disabled={busy} className="wh-editor">
+        <div
+          className="wh-splitter"
+          role="separator"
+          tabIndex={0}
+          aria-orientation="vertical"
+          aria-label={t("settingsWidth")}
+          aria-controls="warehouse-settings"
+          aria-valuemin={MIN_EDITOR_WIDTH}
+          aria-valuemax={maxEditorWidth}
+          aria-valuenow={displayedEditorWidth}
+          aria-valuetext={`${displayedEditorWidth} px`}
+          title={t("resizeSettings")}
+          hidden={settingsHidden}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.currentTarget.focus({ preventScroll: true });
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.current = {
+              pointer: e.pointerId,
+              x: e.clientX,
+              width: displayedEditorWidth,
+            };
+          }}
+          onPointerMove={(e) => {
+            const start = drag.current;
+            if (!start || start.pointer !== e.pointerId) return;
+            setEditorWidth(
+              clampEditorWidth(
+                start.width +
+                  (e.clientX - start.x) * (isRTL(language) ? -1 : 1),
+              ),
+            );
+          }}
+          onPointerUp={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId))
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            drag.current = null;
+          }}
+          onLostPointerCapture={() => {
+            drag.current = null;
+          }}
+          onDoubleClick={() => setEditorWidth(null)}
+          onKeyDown={(e) => {
+            if (e.altKey || e.ctrlKey || e.metaKey) return;
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              e.preventDefault();
+              const direction =
+                (e.key === "ArrowRight" ? 1 : -1) * (isRTL(language) ? -1 : 1);
+              setEditorWidth(
+                clampEditorWidth(
+                  displayedEditorWidth + direction * (e.shiftKey ? 10 : 1),
+                ),
+              );
+            } else if (e.key === "Home" || e.key === "End") {
+              e.preventDefault();
+              setEditorWidth(
+                e.key === "Home" ? MIN_EDITOR_WIDTH : maxEditorWidth,
+              );
+            }
+          }}
+        >
+          <span aria-hidden="true">
+            <svg
+              width="22"
+              height="16"
+              viewBox="0 0 22 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M7 4 3 8l4 4M3 8h16m-4-4 4 4-4 4" />
+            </svg>
+          </span>
+        </div>
+        <fieldset
+          id="warehouse-settings"
+          disabled={busy}
+          className="wh-editor"
+          hidden={settingsHidden}
+        >
           <section className="wh-panel wh-paper-panel">
             <h2>02 · {t("paperType")}</h2>
             <label>
@@ -690,16 +952,23 @@ export function Warehouse({
                     "columns",
                     "rows",
                     "left",
+                    "right",
                     "top",
+                    "bottom",
                     "gapX",
                     "gapY",
-                  ] as (keyof Paper)[]
+                  ] as (keyof Paper | "right" | "bottom")[]
                 ).map((key) =>
                   num(
                     key,
                     t(key as WarehouseKey | HomeKey),
-                    project.paper[key] as number,
-                    (n) => updatePaper({ [key]: n }),
+                    key === "right" || key === "bottom"
+                      ? margins[key]
+                      : (project.paper[key] as number),
+                    (n) =>
+                      key === "right" || key === "bottom"
+                        ? updatePaper(setOppositeMargin(project.paper, key, n))
+                        : updatePaper({ [key]: n }),
                     ["columns", "rows"].includes(key) ? "" : "mm",
                   ),
                 )}
@@ -721,8 +990,37 @@ export function Warehouse({
                   patch({ start: n }),
                 )}
                 <label>
+                  {t("dpi")}
+                  <select
+                    aria-label={t("dpi")}
+                    value={project.dpi}
+                    onChange={(e) => patch({ dpi: Number(e.target.value) })}
+                  >
+                    {(project.printer === "zebra"
+                      ? [203, 300]
+                      : [203, 300, 600]
+                    ).map((n) => (
+                      <option key={n}>{n}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="hm-hint">{t("marginHelp")}</p>
+            </details>
+            <p className="hm-hint">
+              {t(project.paper.medium === "roll" ? "rollNote" : "layoutNote")}
+            </p>
+            <section
+              className="wh-symbol-size"
+              data-testid="warehouse-symbol-size"
+              aria-labelledby="wh-barcode-heading"
+            >
+              <h3 id="wh-barcode-heading">{t("barcodeSection")}</h3>
+              <div className="wh-fields">
+                <label>
                   {t("format")}
                   <select
+                    aria-label={t("format")}
                     value={project.format}
                     onChange={(e) =>
                       patch({
@@ -736,24 +1034,110 @@ export function Warehouse({
                   </select>
                 </label>
                 <label>
-                  {t("dpi")}
+                  {t("symbolSize")}
                   <select
-                    value={project.dpi}
-                    onChange={(e) => patch({ dpi: Number(e.target.value) })}
+                    aria-label={t("symbolSize")}
+                    value={project.symbolSize ? "custom" : "auto"}
+                    onChange={(e) =>
+                      patch({
+                        symbolSize:
+                          e.target.value === "auto"
+                            ? null
+                            : {
+                                moduleDots:
+                                  firstSymbol?.moduleDots ??
+                                  (project.format === "qrcode" ? 4 : 3),
+                                height:
+                                  Math.ceil(
+                                    (firstSymbol?.heightMm ??
+                                      Math.max(4, project.paper.height / 2)) *
+                                      1000,
+                                  ) / 1000,
+                              },
+                      })
+                    }
                   >
-                    {(project.printer === "zebra"
-                      ? [203, 300]
-                      : [203, 300, 600]
-                    ).map((n) => (
-                      <option key={n}>{n}</option>
-                    ))}
+                    <option value="auto">{t("symbolAuto")}</option>
+                    <option value="custom">{t("symbolCustom")}</option>
                   </select>
                 </label>
               </div>
-            </details>
-            <p className="hm-hint">
-              {t(project.paper.medium === "roll" ? "rollNote" : "layoutNote")}
-            </p>
+              {project.symbolSize && (
+                <>
+                  <div className="wh-fields">
+                    {num(
+                      "moduleDots",
+                      t("symbolModule"),
+                      project.symbolSize.moduleDots ??
+                        firstSymbol?.moduleDots ??
+                        3,
+                      (moduleDots) =>
+                        patch({
+                          symbolSize: {
+                            height: project.symbolSize!.height,
+                            moduleDots,
+                          },
+                        }),
+                      "dots",
+                    )}
+                    {project.format !== "qrcode" &&
+                      num(
+                        "symbolHeight",
+                        t("symbolHeight"),
+                        project.symbolSize.height,
+                        (height) =>
+                          patch({
+                            symbolSize: {
+                              moduleDots:
+                                project.symbolSize!.moduleDots ??
+                                firstSymbol?.moduleDots ??
+                                3,
+                              height,
+                            },
+                          }),
+                        "mm",
+                      )}
+                  </div>
+                  <p className="hm-hint">{t("symbolSizeHelp")}</p>
+                </>
+              )}
+              <div
+                className="wh-code-preview"
+                data-testid="warehouse-code-preview"
+              >
+                <h4>{t("symbolPreview")}</h4>
+                {result.error || metricsError ? (
+                  <p className="wh-error" role="alert">
+                    {result.error || metricsError}
+                  </p>
+                ) : firstSymbol ? (
+                  <>
+                    <div className="wh-code-image">
+                      <img
+                        src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(firstSymbol.codeSvg)}`}
+                        alt={t("symbolPreview")}
+                        style={{ width: `${firstSymbol.widthMm}mm` }}
+                        data-width-mm={firstSymbol.widthMm}
+                        data-height-mm={firstSymbol.heightMm}
+                      />
+                    </div>
+                    <p
+                      className="hm-hint"
+                      data-testid="warehouse-symbol-actual"
+                    >
+                      {t("symbolActual")} ·{" "}
+                      {firstSymbol.format === "qrcode" ? "QR" : "Code 128"} ·{" "}
+                      {firstSymbol.widthMm.toFixed(2)} ×{" "}
+                      {firstSymbol.heightMm.toFixed(2)} mm
+                      {" · "}
+                      {firstSymbol.moduleDots} {t("symbolDots")}
+                    </p>
+                  </>
+                ) : (
+                  <p className="hm-hint">{t("empty")}</p>
+                )}
+              </div>
+            </section>
           </section>
 
           <section className="wh-panel wh-label-panel">

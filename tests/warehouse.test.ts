@@ -12,6 +12,8 @@ import {
   validPaper,
   labelSymbol,
   dotsPerMm,
+  paperMargins,
+  setOppositeMargin,
 } from "../src/warehouse/core";
 import { graphicFields } from "../src/warehouse/output";
 import {
@@ -314,5 +316,155 @@ test("warehouse symbols grow with the label while retaining whole-dot modules an
     )!;
     assert.equal(Number(qr[1]), Number(qr[2]));
     assert(Number(qr[1]) > 85 && Number(qr[1]) <= 97);
+  }
+});
+
+test("custom code sizes preserve printer dots, QR aspect ratio and old backups", () => {
+  for (const printer of ["zebra", "thermal", "office"] as const) {
+    for (const dpi of printer === "zebra" ? [203, 300] : [203, 300, 600]) {
+      const p = newWarehouse();
+      p.printer = printer;
+      p.dpi = dpi;
+      p.paper = { ...presets["roll-1"] };
+      const old = JSON.parse(JSON.stringify(p));
+      delete old.symbolSize;
+      assert.equal(validateProject(old).symbolSize, null);
+      p.format = "code128";
+      const automatic = labelSymbol(p.lists.shelf[0], p);
+      p.symbolSize = { width: 60, height: 15 };
+      const linear = labelSymbol(p.lists.shelf[0], p);
+      assert(linear.widthMm <= 60 && linear.heightMm <= 15);
+      assert(linear.widthMm < automatic.widthMm);
+      assert(linear.heightMm < automatic.heightMm);
+      assert(Number.isInteger(linear.moduleDots));
+      const density = printer === "zebra" ? dotsPerMm(dpi) : dpi / 25.4;
+      for (const size of [linear.widthMm, linear.heightMm])
+        assert(Math.abs(size * density - Math.round(size * density)) < 0.00001);
+      assert.deepEqual(
+        validateProject(JSON.parse(JSON.stringify(p))).symbolSize,
+        { moduleDots: linear.moduleDots, height: p.symbolSize.height },
+      );
+      p.format = "qrcode";
+      p.symbolSize = { width: 20, height: 1 };
+      const qr = labelSymbol(p.lists.shelf[0], p);
+      assert.equal(qr.widthMm, qr.heightMm);
+      assert(qr.widthMm <= 20 && qr.widthMm > 10);
+      assert(Number.isInteger(qr.moduleDots));
+      p.symbolSize = null;
+      p.format = "code128";
+      assert.equal(labelSymbol(p.lists.shelf[0], p).svg, automatic.svg);
+    }
+  }
+});
+
+test("custom sizes that cannot fit show errors and block print output", () => {
+  const p = newWarehouse();
+  p.printer = "zebra";
+  p.paper = { ...presets["roll-1"] };
+  for (const format of ["code128", "qrcode"] as const) {
+    p.format = format;
+    p.symbolSize = { width: 200, height: 100 };
+    assert.equal(renderWarehouse(p).errors[0].key, "symbolSizeOverflow");
+    assert.throws(() => renderWarehouse(p, 0, false), /symbolSizeOverflow/);
+    p.symbolSize = { width: 1, height: 1 };
+    assert.equal(renderWarehouse(p).errors[0].key, "symbolSizeError");
+    assert.throws(() => renderWarehouse(p, 0, false), /symbolSizeError/);
+  }
+  for (const size of [0, -1, NaN, Infinity, 601]) {
+    p.symbolSize = { width: size, height: 15 };
+    assert.throws(() => validateProject(p), /symbolSizeError/);
+  }
+});
+
+test("four margins describe the full paper and editing opposite edges preserves stock dimensions", () => {
+  for (const paper of Object.values(presets)) {
+    const { right, bottom } = paperMargins(validPaper(paper));
+    assert(right >= 0 && bottom >= 0);
+    assert(
+      Math.abs(
+        paper.left +
+          right +
+          paper.columns * paper.width +
+          (paper.columns - 1) * paper.gapX -
+          paper.pageWidth,
+      ) < 0.000001,
+    );
+    assert(
+      Math.abs(
+        paper.top +
+          bottom +
+          paper.rows * paper.height +
+          (paper.rows - 1) * paper.gapY -
+          paper.pageHeight,
+      ) < 0.000001,
+    );
+  }
+  const p = newWarehouse();
+  p.printer = "zebra";
+  p.paper = { ...presets["roll-102x152"] };
+  assert.deepEqual(paperMargins(p.paper), { right: 1, bottom: 1 });
+  p.paper = setOppositeMargin(p.paper, "right", 1.25);
+  p.paper = setOppositeMargin(p.paper, "bottom", 1.5);
+  assert.equal(p.paper.left, 0.75);
+  assert.equal(p.paper.top, 0.5);
+  assert.equal(p.paper.width, 100);
+  assert.equal(p.paper.height, 75);
+  assert.equal(p.paper.pageWidth, 102);
+  assert.equal(p.paper.pageHeight, 152);
+  assert.deepEqual(paperMargins(p.paper), { right: 1.25, bottom: 1.5 });
+  assert.match(
+    renderWarehouse(p, 0, false).html,
+    /left:0.75mm;top:75.5mm;width:100mm;height:75mm/,
+  );
+  assert.deepEqual(
+    paperMargins(validateProject(JSON.parse(JSON.stringify(p))).paper),
+    { right: 1.25, bottom: 1.5 },
+  );
+  p.paper = { ...presets["roll-102x152"], height: 50, top: 0, gapY: 3 };
+  assert.equal(paperMargins(p.paper).bottom, 49);
+  assert.equal(setOppositeMargin(p.paper, "bottom", 40).top, 9);
+  for (const edge of ["right", "bottom"] as const) {
+    assert.throws(
+      () => validPaper(setOppositeMargin(p.paper, edge, -1)),
+      /paperError/,
+    );
+    assert.throws(
+      () => validPaper(setOppositeMargin(p.paper, edge, 600)),
+      /paperError/,
+    );
+  }
+});
+
+test("explicit module dots determine width without shrinking, including odd QR modules", () => {
+  for (const dpi of [203, 300]) {
+    const p = newWarehouse();
+    p.printer = "zebra";
+    p.dpi = dpi;
+    p.paper = { ...presets["roll-1"] };
+    p.lists.shelf = [{ ...p.lists.shelf[0], code: "A1" }];
+    for (const format of ["code128", "qrcode"] as const) {
+      p.format = format;
+      p.symbolSize = { moduleDots: 5, height: 15 };
+      const a = labelSymbol(p.lists.shelf[0], p);
+      assert.equal(a.moduleDots, 5);
+      p.symbolSize.moduleDots = 6;
+      const b = labelSymbol(p.lists.shelf[0], p);
+      assert.equal(b.moduleDots, 6);
+      assert(Math.abs(a.widthMm / 5 - b.widthMm / 6) < 0.00001);
+      assert(
+        Math.abs(
+          a.widthMm * dotsPerMm(dpi) - Math.round(a.widthMm * dotsPerMm(dpi)),
+        ) < 0.00001,
+      );
+      if (format === "qrcode") assert.equal(a.widthMm, a.heightMm);
+      else assert.equal(a.heightMm, b.heightMm);
+      p.symbolSize.moduleDots = 32;
+      assert.equal(renderWarehouse(p).errors[0].key, "symbolSizeOverflow");
+      assert.throws(() => renderWarehouse(p, 0, false), /symbolSizeOverflow/);
+      p.symbolSize.moduleDots = 1;
+      assert.equal(renderWarehouse(p).errors[0].key, "symbolModuleTooSmall");
+      p.symbolSize.moduleDots = 3.5;
+      assert.throws(() => validateProject(p), /symbolSizeError/);
+    }
   }
 });
