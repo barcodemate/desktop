@@ -4,7 +4,7 @@ A local desktop workspace for barcode design, batch generation, reusable project
 
 ## Download
 
-[Download for Windows and Mac](https://barcodemate.com/desktop/) · [GitHub release and checksums](https://github.com/Mellon/BarcodeMate/releases/tag/v0.4.1)
+[Download for Windows and Mac](https://barcodemate.com/desktop/) · [GitHub release and checksums](https://github.com/barcodemate/desktop/releases/tag/v0.4.1)
 
 Version 0.4.1 provides Windows x64, Mac Apple Silicon and Intel Mac packages, including household labels and phone synchronization. Windows installation and app workflows, plus macOS packaged app workflows, passed automated tests. Intel Mac physical hardware and real printers remain unverified. App interface: 24 languages, automatic system-language selection on first launch, a persistent language selector, and right-to-left layouts for Arabic, Persian and Hebrew.
 
