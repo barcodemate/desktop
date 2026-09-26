@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("desktop", {
+  feedback: (method:unknown,path:unknown,body?:unknown,files?:unknown) => ipcRenderer.invoke("feedback:request",method,path,body,files),
   warehouseCheck: (address: unknown) => ipcRenderer.invoke("warehouse:check", address),
   warehouseSend: (address: unknown, zpl: string, dpi: number) => ipcRenderer.invoke("warehouse:send", address, zpl, dpi),
   homePair: (method: string, path: string, token?: string, body?: unknown) => ipcRenderer.invoke("home:pair", method, path, token, body),

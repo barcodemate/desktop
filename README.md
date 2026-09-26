@@ -23,7 +23,7 @@ Installers are not publisher-signed; Mac packages are not notarized. The operati
 - GS1 common-field, Wi-Fi, vCard and URL assistants. Raster logos on selected 2D formats and dot styling where supported.
 - Portable `.barcodemate` project files, local project library, recovery autosave and undo/redo.
 - Local image decoding via ZXing WASM in a worker; file, drop and paste input. Decoder supports fewer formats than generation.
-- 24 interface languages and light/dark themes. No telemetry, account or remote fonts. Barcode work stays local; optional household voice input sends audio and the current label list to the configured gateway.
+- 24 interface languages and light/dark themes. No telemetry, account or remote fonts. Barcode work stays local; optional household voice input sends audio and the current label list to the configured gateway. Feedback sends only the text and selected images you explicitly submit; choose public or private, and withdraw from the same device. Contact emails are never public.
 
 Generation is not registration of a product number. Design diagnostics are not an ISO/IEC quality grade. Use an actual printed sample and scanner before production.
 
@@ -84,3 +84,5 @@ Kitchen 与 Storage boxes 按语言和分类独立保存。名称与数量可直
 Open Home labels: **Sync with phone** directly displays the QR code and a short explanation. Scan it with the phone camera, or use **Copy link** to connect from another computer. The hint beside the button explains how. Initial connection failures retry automatically. The mobile web page can edit the shared list or record speech; the computer updates its preview and keeps control of printing. Pairing does not use IP addresses as identity and works across different networks. No project is uploaded until the phone joins.
 
 One phone can join each session. While the waiting computer page stays open, its code stays valid automatically. After a long absence, expired invitations are replaced automatically without affecting an established connection. The shared project is held temporarily in server memory for at most 24 hours and disappears when sharing ends or the service restarts. Both devices retain working drafts in their current tab's session storage. Reconnect to deliver queued changes; export a backup before closing an unsynchronized tab. Concurrent edits require choosing the whole project version after reviewing the conflict. Pairing and voice are optional online features, with keys kept on the gateway server.
+
+Feedback supports multiple original PNG/JPEG/WebP uploads (50 MB each, 80 MB per submission). The server stores a compressed image and a smaller thumbnail for each upload; originals are discarded. Five thumbnails appear in a row, with carousel controls for larger collections.

@@ -1,7 +1,7 @@
 {
   "name": "barcodemate",
   "productName": "BarcodeMate",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Offline barcode design, batch generation and label printing for macOS and Windows.",
   "private": true,
   "type": "module",

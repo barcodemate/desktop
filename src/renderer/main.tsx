@@ -1,3 +1,5 @@
+import {Feedback} from "../feedback/FeedbackPanel";
+import {feedbackText} from "../feedback/feedback";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -88,7 +90,7 @@ import { HomeLabels } from "../home/HomeLabels";
 import { text as homeText } from "../home/i18n";
 
 type Tab =
-  "scenarios" | "home" | "warehouse" | "design" | "batch" | "labels" | "library" | "scan";
+  "feedback" | "scenarios" | "home" | "warehouse" | "design" | "batch" | "labels" | "library" | "scan";
 type Modal = "import" | "sequence" | "assistant" | "about" | null;
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const presets = [
@@ -782,6 +784,7 @@ function App() {
     </label>
   );
   const isScenario = tab === "scenarios" || tab === "home" || tab === "warehouse";
+  const isAuxiliary = isScenario || tab === "feedback";
   const navs: [Tab, typeof Barcode, string, string][] = [
     [
       "scenarios",
@@ -894,7 +897,7 @@ function App() {
             </div>
           ))}
         </nav>
-        {!isScenario && (
+        {!isAuxiliary && (
           <div className="rail-project">
             <div className="project-icon">
               <FolderOpen size={20} />
@@ -910,8 +913,8 @@ function App() {
             </button>
           </div>
         )}
-        <div className="rail-bottom">
-          {!isScenario && (
+        <div className="rail-bottom"><button className={tab === "feedback" ? "nav-item active" : "nav-item"} data-workspace="feedback" aria-current={tab === "feedback" ? "page" : undefined} onClick={() => setTab("feedback")}>{feedbackText(language,"nav")}</button>
+          {!isAuxiliary && (
             <div className="offline">
               <span />
               {L("Offline & private", "离线使用 · 数据私有")}
@@ -961,7 +964,7 @@ function App() {
           <div className="breadcrumb">
             {L("Workspace", "工作空间")}
             <ChevronRight size={15} />
-            {tab === "home" || tab === "warehouse" ? (
+            {tab === "feedback" ? <strong>{feedbackText(language,"nav")}</strong> : tab === "home" || tab === "warehouse" ? (
               <>
                 <button
                   className="breadcrumb-link"
@@ -981,7 +984,7 @@ function App() {
               </strong>
             )}
           </div>
-          {!isScenario && (
+          {!isAuxiliary && (
             <div className="top-actions">
               <span className="save-state">
                 <CheckCircle2 size={14} />
@@ -1014,7 +1017,7 @@ function App() {
           )}
         </header>
         <div className="workspace">
-          {!isScenario && (
+          {!isAuxiliary && (
             <div className="page-heading">
               <div>
                 <div className="eyebrow">
@@ -1127,6 +1130,7 @@ function App() {
               focusCase={focusCase}
             />
           )}
+          {tab === "feedback" && <Feedback language={language} version={info.version} />}
           {tab === "warehouse" && <Warehouse language={language} desktop={window.desktop} />}
           {tab === "home" && (
             <HomeLabels
@@ -2424,7 +2428,7 @@ function App() {
             </div>
           )}
         </div>
-        {!isScenario && (
+        {!isAuxiliary && (
           <footer className="statusbar">
             <span>
               <ShieldCheck size={13} />

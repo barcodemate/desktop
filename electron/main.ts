@@ -1,3 +1,4 @@
+import {feedbackRequest} from "./feedback";
 import {readPrinterInfo,sendPrinter} from "./warehouse-printer";
 import {
   app,
@@ -154,6 +155,8 @@ app.whenReady().then(async () => {
   };
   safeHandler("warehouse:check", (address) => readPrinterInfo(address, testMode));
   safeHandler("warehouse:send", (address, zpl, dpi) => sendPrinter(address, zpl, dpi, testMode));
+  const feedbackEndpoint = testMode && process.env.BARCODEMATE_FEEDBACK_API ? process.env.BARCODEMATE_FEEDBACK_API : "https://barcodemate.com";
+  safeHandler("feedback:request", (method:unknown,path:unknown,body?:unknown,files?:unknown) => feedbackRequest(feedbackEndpoint,app.getVersion(),method,path,body,files));
   safeHandler("home:capabilities", () => homeRequest("capabilities"));
   safeHandler("home:voice", (body: unknown) => homeRequest("voice", body));
   safeHandler("home:pair", async (method: string, path: string, token?: string, body?: unknown) => {
