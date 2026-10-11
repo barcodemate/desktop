@@ -1,4 +1,5 @@
 import { dotsPerMm, validateProject, type WarehouseProject } from "./core";
+import { printableItems } from "../retail/model";
 import type { PrinterInfo } from "../../electron/warehouse-printer";
 import type { WarehouseKey } from "./i18n";
 
@@ -7,7 +8,7 @@ export function zplBounds(input: WarehouseProject) {
   const p = validateProject(input),
     paper = p.paper,
     d = dotsPerMm(p.dpi);
-  const total = p.lists[p.mode].reduce((sum, item) => sum + item.copies, 0);
+  const total = printableItems(p).reduce((sum, item) => sum + item.copies, 0);
   let width = 0,
     height = 0;
   for (let slot = p.start; slot < p.start + total; slot++) {

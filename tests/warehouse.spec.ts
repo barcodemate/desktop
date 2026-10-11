@@ -70,8 +70,12 @@ test("warehouse navigation, native PDF, CSV mapping, ZPL and isolated TCP delive
     expect(Math.abs(Number(mediaBox[2]) - (297 * 72) / 25.4)).toBeLessThan(1);
     await p.locator(".wh-paper-settings summary").click();
     await p.locator("[data-field=offsetX] input").fill("-50");
-    await expect(p.locator(".wh-preview-panel .wh-error")).toContainText("outside");
-    await expect(p.getByTestId("warehouse-code-preview").getByRole("alert")).toContainText("outside");
+    await expect(p.locator(".wh-preview-panel .wh-error")).toContainText(
+      "outside",
+    );
+    await expect(
+      p.getByTestId("warehouse-code-preview").getByRole("alert"),
+    ).toContainText("outside");
     await expect(preview.locator(".label")).toHaveCount(12);
     await expect(
       p.getByRole("button", { name: "Print All", exact: true }),
@@ -113,6 +117,7 @@ test("warehouse navigation, native PDF, CSV mapping, ZPL and isolated TCP delive
     const zpl = await readFile(zplFile, "utf8");
     expect((zpl.match(/\^XA/g) || []).length).toBe(2);
     expect(zpl).not.toMatch(/\^PW|\^LL|~JC/);
+    expect(zpl).toContain("^BCN,");
     await p
       .getByLabel("Printer IPv4 address", { exact: true })
       .fill("127.0.0.1");
@@ -201,8 +206,12 @@ test("warehouse navigation, native PDF, CSV mapping, ZPL and isolated TCP delive
       .toBe(true);
     const customCommands = await readFile(customZpl, "utf8");
     expect((customCommands.match(/\^XA/g) || []).length).toBe(2);
-    expect(customCommands.split("^XZ")[0]).toContain("^FO12,912");
-    expect(customCommands.split("^XZ")[1]).not.toContain("^FO12,912");
+    const nativeYs = (page: string) =>
+      [...page.matchAll(/\^FO\d+,(\d+)\^BY/g)].map((m) => Number(m[1]));
+    const firstPageYs = nativeYs(customCommands.split("^XZ")[0]);
+    expect(firstPageYs).toHaveLength(2);
+    expect(firstPageYs[1] - firstPageYs[0]).toBe(900); // 75 mm at 12 dots/mm
+    expect(nativeYs(customCommands.split("^XZ")[1])).toEqual([firstPageYs[0]]);
     // Intercept the native print bridge: inspect the exact jobs, never open a real printer.
     await app.evaluate(({ ipcMain }) => {
       (globalThis as any).__warehousePrintJobs = [];

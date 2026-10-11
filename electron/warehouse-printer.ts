@@ -1,3 +1,4 @@
+import { nativeCode128Width } from "../src/warehouse/nativeCode128";
 import { Socket, isIPv4 } from "node:net";
 import { request } from "node:http";
 export type PrinterAddress = {
@@ -21,8 +22,12 @@ export function validateAddress(value: PrinterAddress, allowLoopback = false) {
     !Number.isInteger(value.port) ||
     value.port < 1 ||
     value.port > 65535 ||
-    (value.transport !== undefined && !["tcp", "http"].includes(value.transport)) ||
-    (value.httpPort !== undefined && (!Number.isInteger(value.httpPort) || value.httpPort < 1 || value.httpPort > 65535))
+    (value.transport !== undefined &&
+      !["tcp", "http"].includes(value.transport)) ||
+    (value.httpPort !== undefined &&
+      (!Number.isInteger(value.httpPort) ||
+        value.httpPort < 1 ||
+        value.httpPort > 65535))
   )
     throw Error("connectionError");
   const [a, b] = value.host.split(".").map(Number);
@@ -33,13 +38,23 @@ export function validateAddress(value: PrinterAddress, allowLoopback = false) {
     (allowLoopback && a === 127)
   ))
     throw Error("connectionError");
-  return { host: value.host, port: value.port, transport: value.transport ?? "tcp", httpPort: value.httpPort ?? 80 };
+  return {
+    host: value.host,
+    port: value.port,
+    transport: value.transport ?? "tcp",
+    httpPort: value.httpPort ?? 80,
+  };
 }
 // Fixed endpoints, bounded responses, no redirects and no automatic retries.
-function httpExchange(address: ReturnType<typeof validateAddress>, zpl?: string, timeout = 5000): Promise<number> {
+function httpExchange(
+  address: ReturnType<typeof validateAddress>,
+  zpl?: string,
+  timeout = 5000,
+): Promise<number> {
   return new Promise((resolve, reject) => {
     let done = false;
-    const error = () => Error(zpl === undefined ? "connectionError" : "sendError");
+    const error = () =>
+      Error(zpl === undefined ? "connectionError" : "sendError");
     const finish = (failure?: Error, status = 0) => {
       if (done) return;
       done = true;
@@ -47,40 +62,62 @@ function httpExchange(address: ReturnType<typeof validateAddress>, zpl?: string,
       req.destroy();
       failure ? reject(failure) : resolve(status);
     };
-    const req = request({
-      host: address.host,
-      port: address.httpPort,
-      path: zpl === undefined ? "/" : "/pstprnt",
-      method: zpl === undefined ? "GET" : "POST",
-      agent: false,
-      headers: zpl === undefined ? {} : { "Content-Type": "text/plain", "Content-Length": Buffer.byteLength(zpl, "ascii") },
-    }, response => {
-      let bytes = 0;
-      response.on("data", chunk => {
-        bytes += chunk.length;
-        if (bytes > 262144) finish(error());
-      });
-      response.on("error", () => finish(error()));
-      response.on("end", () => {
-        const status = response.statusCode ?? 0;
-        finish(status >= 200 && status < 300 ? undefined : error(), status);
-      });
-    });
+    const req = request(
+      {
+        host: address.host,
+        port: address.httpPort,
+        path: zpl === undefined ? "/" : "/pstprnt",
+        method: zpl === undefined ? "GET" : "POST",
+        agent: false,
+        headers:
+          zpl === undefined
+            ? {}
+            : {
+                "Content-Type": "text/plain",
+                "Content-Length": Buffer.byteLength(zpl, "ascii"),
+              },
+      },
+      (response) => {
+        let bytes = 0;
+        response.on("data", (chunk) => {
+          bytes += chunk.length;
+          if (bytes > 262144) finish(error());
+        });
+        response.on("error", () => finish(error()));
+        response.on("end", () => {
+          const status = response.statusCode ?? 0;
+          finish(status >= 200 && status < 300 ? undefined : error(), status);
+        });
+      },
+    );
     const timer = setTimeout(() => finish(error()), timeout);
     req.on("error", () => finish(error()));
     req.end(zpl);
   });
 }
-export async function checkHttpPrinter(input: PrinterAddress, allowLoopback = false, timeout = 5000) {
+export async function checkHttpPrinter(
+  input: PrinterAddress,
+  allowLoopback = false,
+  timeout = 5000,
+) {
   const address = validateAddress(input, allowLoopback);
   try {
-    return { reachable: true, status: await httpExchange(address, undefined, timeout) };
+    return {
+      reachable: true,
+      status: await httpExchange(address, undefined, timeout),
+    };
   } catch {
     return { reachable: false, status: 0 };
   }
 }
-export async function checkPrinterConnection(input: PrinterAddress, allowLoopback = false) {
-  const [device, http] = await Promise.all([checkPrinter(input, allowLoopback), checkHttpPrinter(input, allowLoopback)]);
+export async function checkPrinterConnection(
+  input: PrinterAddress,
+  allowLoopback = false,
+) {
+  const [device, http] = await Promise.all([
+    checkPrinter(input, allowLoopback),
+    checkHttpPrinter(input, allowLoopback),
+  ]);
   return { ...device, http };
 }
 function exchange(
@@ -171,16 +208,19 @@ export async function checkPrinter(
   timeout = 5000,
 ): Promise<PrinterInfo> {
   const device = await readPrinterInfo(input, allowLoopback, timeout);
-  if (![203, 300].includes(device.dpi) || !device.languages.toLowerCase().includes("zpl"))
+  if (
+    ![203, 300].includes(device.dpi) ||
+    !device.languages.toLowerCase().includes("zpl")
+  )
     throw Error("deviceMismatch");
   return device;
 }
-// Accept only the bitmap jobs generated by this feature, never arbitrary device commands.
+// Accept only generated graphic/native Code 128 jobs, never arbitrary device commands.
 export function inspectJob(zpl: string) {
   if (typeof zpl !== "string" || zpl.length < 20 || zpl.length > 2_000_000)
     throw Error("sizeError");
   const tokens = zpl.match(
-    /\^XA\n\^LH0,0\n(?:\^FO\d+,\d+\^GFA,\d+,\d+,\d+,[0-9A-F]+\^FS\n)+\^PQ1\^XZ\n/g,
+    /\^XA\n\^LH0,0\n(?:\^FO\d+,\d+(?:\^GFA,\d+,\d+,\d+,[0-9A-F]+|\^BY\d+,2,\d+\^BCN,\d+,N,N,N,N\^FH_\^FD(?:_[0-9A-F]{2})+)\^FS\n)+\^PQ1\^XZ\n/g,
   );
   if (!tokens || tokens.join("") !== zpl || tokens.length > 1000)
     throw Error("invalid");
@@ -201,6 +241,14 @@ export function inspectJob(zpl: string) {
       throw Error("invalid");
     width = Math.max(width, x + stride * 8);
     height = Math.max(height, y + b / stride);
+  }
+  for (const m of zpl.matchAll(
+    /\^FO(\d+),(\d+)\^BY(\d+),2,(\d+)\^BCN,(\d+),N,N,N,N\^FH_\^FD((?:_[0-9A-F]{2})+)\^FS/g,
+  )) {
+    const [x, y, module, h, bcHeight] = m.slice(1, 6).map(Number);
+    if (h < 1 || h > 32000 || h !== bcHeight) throw Error("invalid");
+    width = Math.max(width, x + nativeCode128Width(m[6], module));
+    height = Math.max(height, y + h);
   }
   return { width, height, pages: tokens.length };
 }

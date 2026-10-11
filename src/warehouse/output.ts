@@ -1,3 +1,4 @@
+import { nativeCode128 } from "./nativeCode128";
 import {
   dotsPerMm,
   labelSymbol,
@@ -6,6 +7,7 @@ import {
   WarehouseError,
   type WarehouseProject,
 } from "./core";
+import { printableItems } from "../retail/model";
 export const MAX_ZPL_BYTES = 2_000_000;
 // Inspect real font metrics after layout, including glyph fallback for CJK/RTL.
 export async function checkedDocument(project: WarehouseProject) {
@@ -95,6 +97,56 @@ export function graphicFields(
   }
   return out;
 }
+// Omit empty rows/columns around text. The barcode itself is now a native field;
+// shipping its former white rectangle as a bitmap would waste most of the gain.
+export function textGraphicFields(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+) {
+  let out = "",
+    top = -1,
+    left = width,
+    right = -1;
+  const flush = (bottom: number) => {
+    if (top < 0) return;
+    const w = right - left + 1,
+      h = bottom - top;
+    const crop = new Uint8ClampedArray(w * h * 4);
+    for (let row = 0; row < h; row++)
+      crop.set(
+        data.subarray(
+          ((top + row) * width + left) * 4,
+          ((top + row) * width + right + 1) * 4,
+        ),
+        row * w * 4,
+      );
+    out += graphicFields(crop, w, h, x + left, y + top);
+    top = -1;
+    left = width;
+    right = -1;
+  };
+  for (let row = 0; row < height; row++) {
+    let occupied = false;
+    for (let col = 0; col < width; col++) {
+      const i = (row * width + col) * 4;
+      if (
+        data[i + 3] > 127 &&
+        (data[i] + data[i + 1] + data[i + 2]) / 3 < 128
+      ) {
+        occupied = true;
+        left = Math.min(left, col);
+        right = Math.max(right, col);
+      }
+    }
+    if (occupied && top < 0) top = row;
+    if (!occupied) flush(row);
+  }
+  flush(height);
+  return out;
+}
 async function raster(svg: string, width: number, height: number) {
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
@@ -138,20 +190,31 @@ export async function createZpl(
     slot = p.start,
     page = -1;
   const cache = new Map<string, Uint8ClampedArray>();
-  for (const item of p.lists[p.mode]) {
+  for (const item of printableItems(p)) {
     if (!item.copies) continue;
     const symbol = labelSymbol(item, p);
-    let pixels = cache.get(symbol.svg);
+    const native =
+      symbol.format === "code128"
+        ? nativeCode128(symbol.codeSvg, symbol.moduleDots)
+        : null;
+    const placement = /<svg class="ink barcode" x="([^"]+)" y="([^"]+)"/.exec(
+      symbol.svg,
+    );
+    if (native && !placement) throw new WarehouseError("invalid");
+    const rasterSvg = native
+      ? symbol.svg.replace(/<svg class="ink barcode"[\s\S]*?<\/svg>/, "")
+      : symbol.svg;
+    let pixels = cache.get(rasterSvg);
     if (!pixels) {
       pixels = await raster(
-        symbol.svg.replace(
+        rasterSvg.replace(
           /width="[^"]+mm" height="[^"]+mm"/,
           `width="${w}" height="${h}"`,
         ),
         w,
         h,
       );
-      cache.set(symbol.svg, pixels);
+      cache.set(rasterSvg, pixels);
     }
     for (let n = 0; n < item.copies; n++, slot++) {
       const next = Math.floor(slot / (paper.columns * paper.rows));
@@ -160,24 +223,31 @@ export async function createZpl(
         out += `^XA\n${setup}^LH0,0\n`;
         page = next;
       }
-      out += graphicFields(
+      const originX = Math.round(
+        (paper.left +
+          (slot % paper.columns) * (paper.width + paper.gapX) +
+          p.offsetX) *
+          d,
+      );
+      const originY = Math.round(
+        (paper.top +
+          Math.floor((slot % (paper.columns * paper.rows)) / paper.columns) *
+            (paper.height + paper.gapY) +
+          p.offsetY) *
+          d,
+      );
+      out += (native ? textGraphicFields : graphicFields)(
         pixels,
         w,
         h,
-        Math.round(
-          (paper.left +
-            (slot % paper.columns) * (paper.width + paper.gapX) +
-            p.offsetX) *
-            d,
-        ),
-        Math.round(
-          (paper.top +
-            Math.floor((slot % (paper.columns * paper.rows)) / paper.columns) *
-              (paper.height + paper.gapY) +
-            p.offsetY) *
-            d,
-        ),
+        originX,
+        originY,
       );
+      if (native) {
+        const x = originX + Math.round(Number(placement![1]) * d) + native.x;
+        const y = originY + Math.round(Number(placement![2]) * d) + native.y;
+        out += `^FO${x},${y}^BY${native.module},2,${native.height}^BCN,${native.height},N,N,N,N^FH_^FD${native.hex}^FS\n`;
+      }
       if (out.length > MAX_ZPL_BYTES - 20)
         throw new WarehouseError("sizeError");
     }

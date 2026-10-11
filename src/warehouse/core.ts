@@ -1,7 +1,19 @@
 import { rollPreview } from "./rollPreview";
 import Papa from "papaparse";
-import { encode } from "../core/barcode";
-import { defaultDesign, xml } from "../core/model";
+import { xml } from "../core/model";
+import { bad, dotsPerMm, WarehouseError } from "./errors";
+export { dotsPerMm, WarehouseError } from "./errors";
+import { fitCode } from "./symbols";
+import {
+  blankRetail,
+  cleanRetail,
+  printableItems,
+  retailItem,
+  validateRetailOptions,
+  type RetailFields,
+  type RetailOptions,
+} from "../retail/model";
+import { retailLabel } from "../retail/label";
 export const STORE = "barcodemate.warehouse.v1";
 export type Item = {
   id: string;
@@ -9,6 +21,7 @@ export type Item = {
   name: string;
   location: string;
   copies: number;
+  retail?: RetailFields;
 };
 export type Paper = {
   medium: "sheet" | "roll";
@@ -24,29 +37,19 @@ export type Paper = {
   gapY: number;
 };
 export type WarehouseProject = {
-  schema: "barcodemate-warehouse-1";
+  schema: "barcodemate-warehouse-1" | "barcodemate-retail-1";
+  retail?: RetailOptions;
   printer: "office" | "thermal" | "zebra";
   mode: "shelf" | "sku";
   lists: { shelf: Item[]; sku: Item[] };
   paper: Paper;
-  format: "auto" | "code128" | "qrcode";
+  format: "auto" | "code128" | "qrcode" | "ean13" | "ean8" | "upca" | "none";
   // width is accepted only for older local projects/backups; new edits use dots.
   symbolSize: { moduleDots?: number; width?: number; height: number } | null;
   dpi: number;
   offsetX: number;
   offsetY: number;
   start: number;
-};
-export class WarehouseError extends Error {
-  constructor(
-    public key: string,
-    public detail = "",
-  ) {
-    super(key);
-  }
-}
-const bad = (key = "invalid", detail = ""): never => {
-  throw new WarehouseError(key, detail);
 };
 const number = (v: unknown, min: number, max: number, integer = false) =>
   typeof v === "number" &&
@@ -247,13 +250,46 @@ export function newWarehouse(): WarehouseProject {
     start: 0,
   };
 }
+export function newRetail(
+  locale = "en",
+  name = "Organic green tea",
+): WarehouseProject {
+  return {
+    ...newWarehouse(),
+    schema: "barcodemate-retail-1",
+    mode: "sku",
+    retail: { template: "shelf", currency: "USD", locale },
+    lists: {
+      shelf: [],
+      sku: [
+        retailItem({
+          code: "5901234123457",
+          name,
+          retail: {
+            ...blankRetail(),
+            price: "8.50",
+            originalPrice: "10.00",
+            unit: "250 g",
+          },
+        }),
+      ],
+    },
+  };
+}
 export function validateProject(p: WarehouseProject): WarehouseProject {
+  const retail = p?.schema === "barcodemate-retail-1";
   if (
     !p ||
-    p.schema !== "barcodemate-warehouse-1" ||
+    (!retail && p.schema !== "barcodemate-warehouse-1") ||
+    (retail && (p.mode !== "sku" || !p.retail)) ||
+    (!retail && p.retail !== undefined) ||
     !["office", "thermal", "zebra"].includes(p.printer) ||
     !["shelf", "sku"].includes(p.mode) ||
-    !["auto", "code128", "qrcode"].includes(p.format) ||
+    !(
+      retail
+        ? ["auto", "code128", "qrcode", "ean13", "ean8", "upca", "none"]
+        : ["auto", "code128", "qrcode"]
+    ).includes(p.format) ||
     ![203, 300, 600].includes(p.dpi) ||
     (p.printer === "zebra" && ![203, 300].includes(p.dpi))
   )
@@ -301,15 +337,17 @@ export function validateProject(p: WarehouseProject): WarehouseProject {
     if (total > 1000) bad("limit");
   }
   const clean = (items: Item[]) =>
-    items.map(({ id, code, name, location, copies }) => ({
+    items.map(({ id, code, name, location, copies, retail: fields }) => ({
       id,
       code,
       name,
       location,
       copies,
+      ...(retail ? { retail: cleanRetail(fields!) } : {}),
     }));
   const normalized: WarehouseProject = {
     schema: p.schema,
+    ...(retail ? { retail: validateRetailOptions(p.retail!) } : {}),
     printer: p.printer,
     mode: p.mode,
     lists: { shelf: clean(p.lists.shelf), sku: clean(p.lists.sku) },
@@ -352,7 +390,8 @@ export function parseImport(input: string): string[][] {
   });
   if (
     parsed.errors.some((e) => e.code !== "UndetectableDelimiter") ||
-    parsed.data.length > 1001
+    parsed.data.length > 1001 ||
+    parsed.data.some((row) => row.length > 1000)
   )
     bad("importError");
   return parsed.data;
@@ -388,11 +427,6 @@ export function importItems(
     };
   });
 }
-export function dotsPerMm(dpi: number) {
-  if (dpi === 203) return 8;
-  if (dpi === 300) return 12;
-  return bad("dpiError");
-}
 type LabelSymbol = {
   html: string;
   svg: string;
@@ -416,9 +450,17 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
     p.dpi,
     p.printer,
     p.symbolSize,
+    p.retail,
+    item.retail,
   ]);
   const hit = cache.get(key);
   if (hit) return hit;
+  if (p.retail) {
+    const result = retailLabel(item, p);
+    if (cache.size > 2000) cache.clear();
+    cache.set(key, result);
+    return result;
+  }
   if (!item.code.trim()) bad("codeError", item.name);
   const density = p.printer === "zebra" ? dotsPerMm(p.dpi) : p.dpi / 25.4;
   const labelWidth =
@@ -444,142 +486,36 @@ export function labelSymbol(item: Item, p: WarehouseProject) {
       (item.name ? footerLine : 0) + (item.location ? footerLine : 0);
   const available = h - titleHeight - footerHeight - 0.8;
   if (available < 4) bad("barcodeError", item.code);
-  const options = p.format === "auto" ? ["code128", "qrcode"] : [p.format];
-  let overflow = false;
-  let narrowModule = false;
-  for (const format of options) {
-    try {
-      const targetWidth = p.symbolSize?.width ?? w;
-      // QR stays square; its width setting is a side-length limit. A stored
-      // linear-code height must not distort or constrain it after switching.
-      const targetHeight =
-        (format === "qrcode" ? p.symbolSize?.width : p.symbolSize?.height) ??
-        available;
-      if (targetHeight < 4) continue;
-      const dpi = p.printer === "zebra" ? dotsPerMm(p.dpi) * 25.4 : p.dpi;
-      const minScale =
-        format === "qrcode"
-          ? Math.max(1, Math.round((0.3 * dpi) / 25.4 / 2))
-          : Math.max(1, Math.round((0.25 * dpi) / 25.4));
-      // Grow the encoded symbol in whole printer dots, including quiet zones.
-      // Changing the label width must grow its contents, not just its white canvas.
-      const atScale = (scale: number, halfQrGrid = false) => {
-        // bwip QR uses two device pixels per module at scale 1; Code 128 uses one.
-        // For explicit QR dot counts, encode on a doubled grid. Each module
-        // then lands on exactly the requested number of native printer dots,
-        // including odd counts, without resampling a bitmap.
-        const renderDpi = dpi * (halfQrGrid ? 2 : 1);
-        const moduleDots =
-          (scale * (format === "qrcode" ? 2 : 1)) / (halfQrGrid ? 2 : 1);
-        return encode({
-          ...defaultDesign(),
-          type: format,
-          data: item.code,
-          name: "",
-          showText: false,
-          // bwip validates textsize even when the caption is disabled.
-          textSize: 5,
-          height: Math.min(300, targetHeight - 1),
-          module: (scale * 25.4) / renderDpi,
-          dpi: renderDpi,
-          quietX: ((moduleDots * 25.4) / dpi) * (format === "qrcode" ? 4 : 10),
-          quietY: format === "qrcode" ? ((moduleDots * 25.4) / dpi) * 4 : 0.4,
-          foreground: "#000000",
-          background: "#ffffff",
-        });
-      };
-      const requestedDots = p.symbolSize?.moduleDots;
-      if (
-        requestedDots !== undefined &&
-        requestedDots < minScale * (format === "qrcode" ? 2 : 1)
-      ) {
-        narrowModule = true;
-        continue;
-      }
-      let s;
-      if (requestedDots !== undefined) {
-        s = atScale(requestedDots, format === "qrcode");
-      } else {
-        s = atScale(minScale);
-        if (
-          s.widthMm > targetWidth + 0.001 ||
-          s.heightMm > targetHeight + 0.001
-        )
-          continue;
-        const maxScale = Math.floor(
-          Math.min(
-            (minScale * targetWidth) / s.widthMm,
-            format === "qrcode"
-              ? (minScale * targetHeight) / s.heightMm
-              : Infinity,
-            // Encoder limits: module <= 5 mm and quiet zones <= 40 mm.
-            (dpi / 25.4) * (format === "qrcode" ? 5 : 4),
-          ),
-        );
-        for (let scale = maxScale; scale > minScale; scale--) {
-          const candidate = atScale(scale);
-          if (
-            candidate.widthMm <= targetWidth + 0.001 &&
-            candidate.heightMm <= targetHeight + 0.001
-          ) {
-            s = candidate;
-            break;
-          }
-        }
-      }
-      // Do not silently shrink an oversized custom symbol to the label.
-      if (s.widthMm > w + 0.001 || s.heightMm > available + 0.001) {
-        overflow = true;
-        continue;
-      }
-      const dpmm = dpi / 25.4,
-        align = (mm: number) => Math.round(mm * dpmm) / dpmm;
-      const x = align((labelWidth - s.widthMm) / 2),
-        y = align(pad + titleHeight + (available - s.heightMm) / 2);
-      const text = (
-        value: string,
-        baseline: number,
-        size: number,
-        cls: string,
-      ) =>
-        `<text class="ink ${cls}" x="${labelWidth / 2}" y="${baseline}" font-size="${size}" font-weight="${cls === "title" ? 700 : 400}" text-anchor="middle" direction="${/[\u0590-\u08ff]/.test(value) ? "rtl" : "ltr"}" unicode-bidi="plaintext">${xml(value)}</text>`;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${labelWidth}mm" height="${labelHeight}mm" viewBox="0 0 ${labelWidth} ${labelHeight}" style="overflow:visible" font-family="Arial, sans-serif" fill="#000">${text(title, pad + font, font, "title")}<svg class="ink barcode" x="${x}" y="${y}" width="${s.widthMm}" height="${s.heightMm}" viewBox="0 0 ${s.width} ${s.height}">${s.svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</svg>${item.name ? text(item.code, labelHeight - pad - (item.location ? footerLine : 0) - footerFont * 0.28, footerFont, "code") : ""}${item.location ? text(item.location, labelHeight - pad - footerFont * 0.28, footerFont, "location") : ""}</svg>`;
-      const result = {
-        html: svg,
-        svg,
-        codeSvg: s.svg,
-        format,
-        widthMm: s.widthMm,
-        heightMm: s.heightMm,
-        moduleDots:
-          requestedDots ?? s.pixelsPerModule * (format === "qrcode" ? 2 : 1),
-        availableWidth: w,
-        availableHeight: available,
-      };
-      if (cache.size > 2000) cache.clear();
-      cache.set(key, result);
-      return result;
-    } catch (e) {
-      if (e instanceof WarehouseError) throw e;
-    }
-  }
-  return bad(
-    overflow
-      ? "symbolSizeOverflow"
-      : narrowModule
-        ? "symbolModuleTooSmall"
-        : p.symbolSize
-          ? "symbolSizeError"
-          : "barcodeError",
-    item.code,
-  );
+  const s = fitCode(item.code, p, w, available);
+  const { format, dpi } = s;
+  const dpmm = dpi / 25.4,
+    align = (mm: number) => Math.round(mm * dpmm) / dpmm;
+  const x = align((labelWidth - s.widthMm) / 2),
+    y = align(pad + titleHeight + (available - s.heightMm) / 2);
+  const text = (value: string, baseline: number, size: number, cls: string) =>
+    `<text class="ink ${cls}" x="${labelWidth / 2}" y="${baseline}" font-size="${size}" font-weight="${cls === "title" ? 700 : 400}" text-anchor="middle" direction="${/[\u0590-\u08ff]/.test(value) ? "rtl" : "ltr"}" unicode-bidi="plaintext">${xml(value)}</text>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${labelWidth}mm" height="${labelHeight}mm" viewBox="0 0 ${labelWidth} ${labelHeight}" style="overflow:visible" font-family="Arial, sans-serif" fill="#000">${text(title, pad + font, font, "title")}<svg class="ink barcode" x="${x}" y="${y}" width="${s.widthMm}" height="${s.heightMm}" viewBox="0 0 ${s.width} ${s.height}">${s.svg.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")}</svg>${item.name ? text(item.code, labelHeight - pad - (item.location ? footerLine : 0) - footerFont * 0.28, footerFont, "code") : ""}${item.location ? text(item.location, labelHeight - pad - footerFont * 0.28, footerFont, "location") : ""}</svg>`;
+  const result = {
+    html: svg,
+    svg,
+    codeSvg: s.svg,
+    format,
+    widthMm: s.widthMm,
+    heightMm: s.heightMm,
+    moduleDots: s.moduleDots,
+    availableWidth: w,
+    availableHeight: available,
+  };
+  if (cache.size > 2000) cache.clear();
+  cache.set(key, result);
+  return result;
 }
 // Build the first physical page without changing quantities or the saved project.
 export function sampleProject(input: WarehouseProject): WarehouseProject {
   const project = validateProject(input);
   let remaining = project.paper.columns * project.paper.rows - project.start;
   const items: Item[] = [];
-  for (const item of project.lists[project.mode]) {
+  for (const item of printableItems(project)) {
     const copies = Math.min(item.copies, remaining);
     if (copies > 0) items.push({ ...item, copies });
     remaining -= copies;
@@ -596,7 +532,7 @@ export function renderWarehouse(
 ) {
   const p = validateProject(input),
     paper = p.paper,
-    rows = p.lists[p.mode].filter((r) => r.copies > 0),
+    rows = printableItems(p),
     per = paper.columns * paper.rows;
   const total = rows.reduce((n, r) => n + r.copies, 0),
     pageCount = Math.max(1, Math.ceil((total + p.start) / per));
@@ -657,7 +593,7 @@ export function renderWarehouse(
         (page) => `<section class="sheet">${guides}${page.join("")}</section>`,
       )
       .join("");
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:"><title>BarcodeMate Warehouse</title><style>@page{size:${paper.pageWidth}mm ${paper.pageHeight}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}${preview ? "html,body{overflow:hidden}" : ""}.sheet{position:relative;width:${paper.pageWidth}mm;height:${paper.pageHeight}mm;break-after:page;overflow:hidden;background:${preview ? "#d7dfdb" : "#fff"}}.sheet:last-child{break-after:auto}.guide{position:absolute;background:#fff;border:.2mm solid #b5c3ba;border-radius:1mm}.label{position:absolute}.shift{width:100%;height:100%}${roll?.css ?? ""}@media print{.sheet{background:#fff}.guide{display:none}}</style></head><body>${sections}</body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:"><title>BarcodeMate ${p.retail ? "Retail Stores" : "Warehouse"}</title><style>@page{size:${paper.pageWidth}mm ${paper.pageHeight}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}${preview ? "html,body{overflow:hidden}" : ""}.sheet{position:relative;width:${paper.pageWidth}mm;height:${paper.pageHeight}mm;break-after:page;overflow:hidden;background:${preview ? "#d7dfdb" : "#fff"}}.sheet:last-child{break-after:auto}.guide{position:absolute;background:#fff;border:.2mm solid #b5c3ba;border-radius:1mm}.label{position:absolute}.shift{width:100%;height:100%}${roll?.css ?? ""}@media print{.sheet{background:#fff}.guide{display:none}}</style></head><body>${sections}</body></html>`;
   return {
     html,
     paper,

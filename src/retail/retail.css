@@ -1,0 +1,69 @@
+.rt-editor {
+  container-type: inline-size;
+}
+.rt-products {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+.rt-item {
+  border: 1px solid #dce4de;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+.rt-item[data-selected="false"] {
+  background: #f6f8f5;
+}
+.rt-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rt-item-heading .hm-check {
+  margin: 0;
+}
+.hm-root .rt-remove {
+  min-height: 32px;
+  padding: 0 10px;
+}
+.rt-details {
+  margin-top: 12px;
+}
+.rt-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #425e51;
+}
+.rt-details .wh-fields {
+  margin-top: 12px;
+}
+.rt-search {
+  margin-top: 18px;
+}
+.rt-selection {
+  margin-top: 12px;
+}
+.rt-selection > span {
+  font-size: 13px;
+  color: #52675c;
+}
+.rt-import-preview {
+  width: 100%;
+  font-size: 13px;
+}
+.rt-import-preview th {
+  text-align: start;
+}
+.rt-editor input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+@container (max-width: 380px) {
+  .rt-item .wh-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

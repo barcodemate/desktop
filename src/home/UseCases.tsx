@@ -8,6 +8,7 @@ export function UseCases({
   language,
   onHome,
   onWarehouse,
+  onRetail,
   shortcuts,
   onAdd,
   focusCase,
@@ -15,6 +16,7 @@ export function UseCases({
   language: string;
   onHome: () => void;
   onWarehouse: () => void;
+  onRetail: () => void;
   shortcuts: ShortcutId[];
   onAdd: (id: ShortcutId) => void;
   focusCase: ShortcutId | null;
@@ -103,6 +105,7 @@ export function UseCases({
           {pin("warehouse")}
         </article>
         <article className="hm-case-card" id="case-supermarket" tabIndex={-1}>
+          <button type="button" className="hm-case-open hm-case-ready" onClick={onRetail}>
           <div className="hm-case-heading">
             <svg
               width={24}
@@ -118,7 +121,8 @@ export function UseCases({
             <h2>{t("supermarket")}</h2>
           </div>
           <p>{t("supermarketDescription")}</p>
-          <span className="hm-case-state">{t("planned")}</span>
+          <span className="hm-case-link">{t("supermarket")} →</span>
+          </button>
           {pin("supermarket")}
         </article>
       </div>

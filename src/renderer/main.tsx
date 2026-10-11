@@ -90,7 +90,7 @@ import { HomeLabels } from "../home/HomeLabels";
 import { text as homeText } from "../home/i18n";
 
 type Tab =
-  "feedback" | "scenarios" | "home" | "warehouse" | "design" | "batch" | "labels" | "library" | "scan";
+  "feedback" | "scenarios" | "home" | "warehouse" | "retail" | "design" | "batch" | "labels" | "library" | "scan";
 type Modal = "import" | "sequence" | "assistant" | "about" | "usage" | "usage-ask" | null;
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const presets = [
@@ -431,8 +431,8 @@ function App() {
     () =>
       window.desktop.menu((action) => {
         if (tab === "scenarios") return;
-        if (tab === "warehouse") {
-          window.dispatchEvent(new CustomEvent("warehouse-menu", {detail: action}));
+        if (tab === "warehouse" || tab === "retail") {
+          window.dispatchEvent(new CustomEvent(tab === "retail" ? "retail-menu" : "warehouse-menu", {detail: action}));
           return;
         }
         if (tab === "home") {
@@ -809,7 +809,7 @@ function App() {
       />
     </label>
   );
-  const isScenario = tab === "scenarios" || tab === "home" || tab === "warehouse";
+  const isScenario = tab === "scenarios" || tab === "home" || tab === "warehouse" || tab === "retail";
   const isAuxiliary = isScenario || tab === "feedback";
   const navs: [Tab, typeof Barcode, string, string][] = [
     [
@@ -872,6 +872,7 @@ function App() {
                     {homeText(language, "homeCategory")}
                   </button>
                   <button data-workspace="warehouse" className={tab === "warehouse" ? "nav-item active" : "nav-item"} onClick={() => setTab("warehouse")} aria-current={tab === "warehouse" ? "page" : undefined}>{homeText(language,"warehouse")}</button>
+                  <button data-workspace="retail" className={tab === "retail" ? "nav-item active" : "nav-item"} onClick={() => setTab("retail")} aria-current={tab === "retail" ? "page" : undefined}>{homeText(language,"supermarket")}</button>
                 </div>
               )}
             </div>
@@ -880,12 +881,12 @@ function App() {
             <div className="bm-shortcut" data-shortcut={id} key={id}>
               <button
                 className={
-                  (id === "home" || id === "warehouse") && tab === id
+                  (id === "supermarket" ? tab === "retail" : tab === id)
                     ? "nav-item active"
                     : "nav-item"
                 }
                 onClick={() => {
-                  setTab(id === "home" || id === "warehouse" ? id : "scenarios");
+                  setTab(id === "supermarket" ? "retail" : id);
                   setFocusCase(id);
                   requestAnimationFrame(() =>
                     document.getElementById("case-" + id)?.focus(),
@@ -990,7 +991,7 @@ function App() {
           <div className="breadcrumb">
             {L("Workspace", "工作空间")}
             <ChevronRight size={15} />
-            {tab === "feedback" ? <strong>{feedbackText(language,"nav")}</strong> : tab === "home" || tab === "warehouse" ? (
+            {tab === "feedback" ? <strong>{feedbackText(language,"nav")}</strong> : tab === "home" || tab === "warehouse" || tab === "retail" ? (
               <>
                 <button
                   className="breadcrumb-link"
@@ -999,7 +1000,7 @@ function App() {
                   {homeText(language, "useCases")}
                 </button>
                 <ChevronRight size={15} />
-                <strong>{homeText(language, tab === "warehouse" ? "warehouse" : "homeCategory")}</strong>
+                <strong>{homeText(language, tab === "retail" ? "supermarket" : tab === "warehouse" ? "warehouse" : "homeCategory")}</strong>
               </>
             ) : (
               <strong>
@@ -1149,6 +1150,7 @@ function App() {
               language={language}
               onHome={() => setTab("home")}
               onWarehouse={() => setTab("warehouse")}
+              onRetail={() => setTab("retail")}
               shortcuts={shortcuts}
               onAdd={(id) => {
                 if (!shortcuts.includes(id)) writeShortcuts([...shortcuts, id]);
@@ -1157,7 +1159,8 @@ function App() {
             />
           )}
           {tab === "feedback" && <Feedback language={language} version={info.version} />}
-          {tab === "warehouse" && <Warehouse language={language} desktop={window.desktop} />}
+          {tab === "warehouse" && <Warehouse key="warehouse" language={language} desktop={window.desktop} />}
+          {tab === "retail" && <Warehouse key="retail" retail language={language} desktop={window.desktop} />}
           {tab === "home" && (
             <HomeLabels
               language={language}
