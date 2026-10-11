@@ -4,8 +4,10 @@ import {mkdtemp,rm,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {randomBytes} from 'node:crypto';
+import { settled } from "./profile";
 test('desktop submits only explicitly, uses IPC for images, and withdraws public/private feedback',async()=>{
  const temp=await mkdtemp(path.join(tmpdir(),'barcodemate-feedback-'));
+ await settled(temp);
  const items=new Map<string,any>();let calls=0;
  const server=createServer(async(req,res)=>{
   calls++;const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(chunk);const raw=Buffer.concat(chunks);let body:any={};

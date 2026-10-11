@@ -2,8 +2,10 @@ import { test, expect, _electron as electron } from "@playwright/test";
 import { mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { settled } from "./profile";
 test("household labels preserve sizes across locales and export a real bilingual PDF", async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), "barcodemate-home-"));
+  await settled(temp);
   const app = await electron.launch({
     ...(process.env.BARCODEMATE_EXECUTABLE
       ? { executablePath: process.env.BARCODEMATE_EXECUTABLE, args: [] }

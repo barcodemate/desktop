@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { HomeProject } from "../src/home/core";
+import { settled } from "./profile";
 test("desktop pairing uses the native gateway and receives a phone edit without printing", async () => {
   let project: HomeProject | undefined,
     revision = 1,
@@ -93,6 +94,7 @@ test("desktop pairing uses the native gateway and receives a phone edit without 
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   origin = "http://127.0.0.1:" + (server.address() as { port: number }).port;
   const dir = await mkdtemp(path.join(os.tmpdir(), "barcodemate-pair-"));
+  await settled(dir);
   const app = await electron.launch({
     ...(process.env.BARCODEMATE_EXECUTABLE
       ? { executablePath: process.env.BARCODEMATE_EXECUTABLE, args: [] }

@@ -18,6 +18,13 @@ export interface DesktopAPI {
     sandbox: boolean;
     nodeIntegration: boolean;
   };
+  usage: {
+    state(): Promise<{ decided: boolean; enabled: boolean }>;
+    decide(enabled: boolean): Promise<{ decided: boolean; enabled: boolean }>;
+    track(event: string, type: string): Promise<boolean>;
+    sent(): Promise<{ at: string; event: string; type: string }[]>;
+    forget(): Promise<void>;
+  };
   info(): Promise<{
     platform: string;
     version: string;

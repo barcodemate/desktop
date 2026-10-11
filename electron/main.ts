@@ -1,5 +1,7 @@
 import {feedbackRequest} from "./feedback";
 import {readPrinterInfo,sendPrinter} from "./warehouse-printer";
+import { Usage, post } from "./usage";
+import barcodeCatalog from "../src/core/catalog.json" with { type: "json" };
 import {
   app,
   BrowserWindow,
@@ -51,6 +53,18 @@ function safeHandler(name: string, callback: (...args: any[]) => unknown) {
     return callback(...args);
   });
 }
+// Opt-in usage counts. The catalogue supplies the only barcode ids that may
+// be sent, so a format that does not exist cannot be reported.
+let usage: Usage | undefined;
+const usageCounter = () =>
+  (usage ??= new Usage(
+    {
+      read: (name) => readJSON(dataFile(name)),
+      write: (name, data) => atomic(dataFile(name), data),
+    },
+    new Set(barcodeCatalog.map((type) => type.id)),
+    post,
+  ));
 async function readJSON(file: string) {
   try {
     return JSON.parse(await readFile(file, "utf8"));
@@ -295,6 +309,12 @@ app.whenReady().then(async () => {
       );
     await languageSaving;
   });
+  safeHandler("usage:state", () => usageCounter().current());
+  safeHandler("usage:decide", (enabled: unknown) => usageCounter().decide(enabled === true));
+  safeHandler("usage:track", (event: unknown, type: unknown) =>
+    usageCounter().track(String(event), String(type)));
+  safeHandler("usage:sent", () => usageCounter().sent());
+  safeHandler("usage:forget", () => usageCounter().forget());
   safeHandler("info", () => ({
     platform: process.platform,
     version: app.getVersion(),

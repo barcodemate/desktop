@@ -11,6 +11,10 @@ import path from "node:path";
 let app: ElectronApplication, page: Page, temp: string;
 test.beforeEach(async () => {
   temp = await mkdtemp(path.join(os.tmpdir(), "barcodemate-app-"));
+  // Every other test starts from a profile that has already answered the
+  // first-run question, so the dialog does not stand in front of the app.
+  if (!test.info().title.includes("usage counting"))
+    await writeFile(path.join(temp, "usage.json"), JSON.stringify({ enabled: false, log: [] }));
   app = await electron.launch({
     ...(process.env.BARCODEMATE_EXECUTABLE
       ? { executablePath: process.env.BARCODEMATE_EXECUTABLE, args: [] }
@@ -193,4 +197,34 @@ test("all image exporters produce usable files and the local reader decodes expo
     path: "test-results/screenshots/reader.png",
     fullPage: true,
   });
+});
+
+test("usage counting is off until asked, and the record is readable in the app", async () => {
+  // A fresh profile means the first-run question, which blocks nothing else.
+  const ask = page.getByRole("heading", { name: "Help improve BarcodeMate?" });
+  await expect(ask).toBeVisible();
+  await expect(page.getByText(/Barcode content, names, file paths and error text are never included/)).toBeVisible();
+
+  await page.getByRole("button", { name: "No thanks" }).click();
+  await expect(ask).toBeHidden();
+  // Declining is remembered as an answer, so it is not asked again.
+  const settings = async () => JSON.parse(await readFile(path.join(temp, "usage.json"), "utf8"));
+  expect(await settings()).toEqual({ enabled: false, log: [] });
+
+  // The About panel shows the state and offers the record.
+  await page.getByTitle("About BarcodeMate").click();
+  const toggle = page.getByRole("checkbox", { name: /Send anonymous usage counts/ });
+  await expect(toggle).not.toBeChecked();
+  await expect(page.getByText(/Usage counts are off until you turn them on/)).toBeVisible();
+  await page.getByRole("button", { name: "See exactly what was sent" }).click();
+  await expect(page.getByRole("heading", { name: "What this app has sent" })).toBeVisible();
+  await expect(page.getByText("Nothing has been sent.")).toBeVisible();
+  await page.locator(".modal-actions").getByRole("button", { name: "Back" }).click();
+
+  // Turning it on is recorded; nothing was sent while it was off.
+  await toggle.click();
+  await expect(toggle).toBeChecked();
+  const after = await settings();
+  expect(after.enabled).toBe(true);
+  expect(after.log).toEqual([]);
 });

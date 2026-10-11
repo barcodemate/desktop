@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld("desktop", {
   }),
   setLanguage: (language: string) =>
     ipcRenderer.invoke("language:set", language),
+  usage: {
+    state: () => ipcRenderer.invoke("usage:state"),
+    decide: (enabled: boolean) => ipcRenderer.invoke("usage:decide", enabled),
+    track: (event: string, type: string) => ipcRenderer.invoke("usage:track", event, type),
+    sent: () => ipcRenderer.invoke("usage:sent"),
+    forget: () => ipcRenderer.invoke("usage:forget"),
+  },
   info: () => ipcRenderer.invoke("info"),
   openProject: () => ipcRenderer.invoke("project:open"),
   saveProject: (p: unknown) => ipcRenderer.invoke("project:save", p),

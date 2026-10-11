@@ -3,9 +3,11 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { createServer } from "node:net";
+import { settled } from "./profile";
 
 test("warehouse navigation, native PDF, CSV mapping, ZPL and isolated TCP delivery", async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), "barcodemate-warehouse-"));
+  await settled(temp);
   const app = await electron.launch({
     args: ["."],
     env: { ...process.env, BARCODEMATE_TEST_DIR: temp },
@@ -257,6 +259,7 @@ test("Zebra selection checks saved addresses, blocks mismatches and ignores stal
   const temp = await mkdtemp(
     path.join(os.tmpdir(), "barcodemate-zebra-check-"),
   );
+  await settled(temp);
   const app = await electron.launch({
     args: ["."],
     env: { ...process.env, BARCODEMATE_TEST_DIR: temp },

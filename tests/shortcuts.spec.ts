@@ -2,8 +2,10 @@ import {test,expect,_electron as electron} from '@playwright/test';
 import {mkdtemp} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { settled } from "./profile";
 test('scenario shortcuts persist, follow the interface language, and can be removed without opening a tool',async()=>{
  const temp=await mkdtemp(path.join(os.tmpdir(),'barcodemate-shortcuts-'));
+ await settled(temp);
  const app=await electron.launch({...process.env.BARCODEMATE_EXECUTABLE?{executablePath:process.env.BARCODEMATE_EXECUTABLE,args:[]}:{args:['.']},env:{...process.env,BARCODEMATE_TEST_DIR:temp}});
  try {
   const p=await app.firstWindow();await p.locator('#language-select').selectOption('zh-Hans');await p.locator('[data-workspace=scenarios]').click();

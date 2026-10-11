@@ -3,10 +3,12 @@ import { mkdtemp, readFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { languages, translate } from "../src/i18n";
+import { settled } from "./profile";
 
 test("all 24 languages switch instantly across workflows and native menus without changing project data", async () => {
   test.setTimeout(180000);
   const temp = await mkdtemp(path.join(os.tmpdir(), "barcodemate-languages-"));
+  await settled(temp);
   let app = await electron.launch({
     ...(process.env.BARCODEMATE_EXECUTABLE
       ? { executablePath: process.env.BARCODEMATE_EXECUTABLE, args: [] }

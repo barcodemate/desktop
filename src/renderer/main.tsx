@@ -91,7 +91,7 @@ import { text as homeText } from "../home/i18n";
 
 type Tab =
   "feedback" | "scenarios" | "home" | "warehouse" | "design" | "batch" | "labels" | "library" | "scan";
-type Modal = "import" | "sequence" | "assistant" | "about" | null;
+type Modal = "import" | "sequence" | "assistant" | "about" | "usage" | "usage-ask" | null;
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const presets = [
   { name: "A4 · 21 labels", ...defaultLayout() },
@@ -196,6 +196,8 @@ function App() {
   const [project, setProject] = useState(() => freshProject(initialLanguage())),
     [tab, setTab] = useState<Tab>("design"),
     [modal, setModal] = useState<Modal>(null),
+    [usageOn, setUsageOn] = useState(false),
+    [usageLog, setUsageLog] = useState<{ at: string; event: string; type: string }[]>([]),
     [language, setLanguage] = useState(initialLanguage),
     [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [toast, setToast] = useState(""),
@@ -318,6 +320,11 @@ function App() {
         notify(L("Project opened", "项目已打开"));
       }
     });
+  // Counts only, and only once the person has agreed. The main process
+  // refuses anything outside its whitelist, so this cannot leak content.
+  const count = (event: string, type: string) => {
+    void window.desktop.usage.track(event, type).catch(() => {});
+  };
   const importFile = () =>
     run(async () => {
       const r = await window.desktop.importTable();
@@ -339,6 +346,7 @@ function App() {
     run(async () => {
       setBusy("Preparing pages…");
       try {
+        count("app_print", pdf ? "pdf" : "system");
         const html = labelDocument(project);
         const result = await window.desktop.print({
           html,
@@ -353,6 +361,7 @@ function App() {
               ? L("PDF saved", "PDF 已保存")
               : L("Sent to printer", "已发送到打印机"),
           );
+        else count("app_fail", "print");
       } finally {
         setBusy("");
       }
@@ -379,6 +388,20 @@ function App() {
       initialized.current = true;
     });
   }, []);
+  useEffect(() => {
+    // Ask once, on the first run. Until there is an answer, nothing is sent.
+    let cancelled = false;
+    void window.desktop.usage
+      .state()
+      .then((state) => {
+        if (cancelled) return;
+        setUsageOn(state.enabled);
+        if (!state.decided) setModal((open) => open ?? "usage-ask");
+        else if (state.enabled) void window.desktop.usage.track("app_start", info.version);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [info.version]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("theme", theme);
@@ -585,7 +608,8 @@ function App() {
           bytes,
           extension: format,
         });
-        if (name) notify(L("Exported ", "已导出 ") + name);
+        if (name) { count("app_export", format); notify(L("Exported ", "已导出 ") + name); }
+        else count("app_fail", "export");
       }
     });
   const exportBatch = () =>
@@ -610,7 +634,8 @@ function App() {
           bytes,
           extension: "zip",
         });
-        if (name) notify(L("Batch exported", "批量导出完成"));
+        if (name) { count("app_export", "zip"); notify(L("Batch exported", "批量导出完成")); }
+        else count("app_fail", "export");
       } finally {
         setBusy("");
       }
@@ -625,6 +650,7 @@ function App() {
       const rows = mapRows(table.rows, mapping, hasHeader);
       if (rows.length + (append ? project.rows.length : 0) > 10000)
         throw Error("Maximum 10,000 rows per project.");
+      count("app_import", importName ? "csv" : "paste");
       change((p) => ({ ...p, rows: append ? [...p.rows, ...rows] : rows }));
       setSelected(new Set());
       setBatchPage(0);
@@ -1200,6 +1226,7 @@ function App() {
                     value={project.design.type}
                     onChange={(e) => {
                       const t = catalog.find((t) => t.id === e.target.value)!;
+                      count("app_generate", t.id);
                       design({
                         type: t.id,
                         data: t.sample,
@@ -2856,6 +2883,87 @@ function App() {
                 </div>
               </>
             )}
+            {modal === "usage-ask" && (
+              <>
+                <h2>{L("Help improve BarcodeMate?", "帮助改进 BarcodeMate？")}</h2>
+                <p>
+                  {L(
+                    "The app can send a count of which features get used. It is off unless you turn it on here.",
+                    "客户端可以发送各功能被使用的次数统计。除非你在这里开启，否则不会发送。",
+                  )}
+                </p>
+                <p>
+                  {L(
+                    "Each message is two short words, for example app_export and png. Barcode content, names, file paths and error text are never included, and there is no account, device or session identifier.",
+                    "每条消息只有两个短词，例如 app_export 和 png。绝不包含条码内容、名称、文件路径或错误信息，也没有任何账号、设备或会话标识。",
+                  )}
+                </p>
+                <p className="muted-note">
+                  {L(
+                    "You can see every message this app has sent, and change your mind, under the version number at any time.",
+                    "你随时可以在版本号菜单里查看本机已发送的每一条消息，也可以随时改变选择。",
+                  )}
+                </p>
+                <div className="modal-actions">
+                  <button
+                    onClick={async () => {
+                      await window.desktop.usage.decide(false);
+                      setUsageOn(false);
+                      setModal(null);
+                    }}
+                  >
+                    {L("No thanks", "不用了")}
+                  </button>
+                  <button
+                    className="primary"
+                    onClick={async () => {
+                      const next = await window.desktop.usage.decide(true);
+                      setUsageOn(next.enabled);
+                      setModal(null);
+                      void window.desktop.usage.track("app_start", info.version);
+                    }}
+                  >
+                    {L("Yes, send counts", "可以，发送计数")}
+                  </button>
+                </div>
+              </>
+            )}
+            {modal === "usage" && (
+              <>
+                <h2>{L("What this app has sent", "本机已发送的数据")}</h2>
+                <p>
+                  {L(
+                    "This is the complete record of every message sent from this computer, exactly as it was sent.",
+                    "以下是本机发送过的每一条消息的完整记录，与实际发送的内容一字不差。",
+                  )}
+                </p>
+                {usageLog.length === 0 ? (
+                  <p className="muted-note">{L("Nothing has been sent.", "尚未发送过任何数据。")}</p>
+                ) : (
+                  <ul className="usage-log">
+                    {usageLog.slice().reverse().map((row, i) => (
+                      <li key={i}>
+                        <time>{row.at.replace("T", " ").slice(0, 19)}</time>
+                        <code>{JSON.stringify({ event: row.event, type: row.type })}</code>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="modal-actions">
+                  <button
+                    onClick={async () => {
+                      await window.desktop.usage.forget();
+                      setUsageLog([]);
+                    }}
+                  >
+                    {L("Clear this record", "清空本机记录")}
+                  </button>
+                  <button className="primary" onClick={() => setModal("about")}>
+                    {L("Back", "返回")}
+                  </button>
+                </div>
+              </>
+            )}
             {modal === "about" && (
               <>
                 <div className="about-brand">
@@ -2873,10 +2981,32 @@ function App() {
                 </p>
                 <p>
                   {L(
-                    "All barcode data, images, and projects are processed locally. No telemetry or cloud account.",
-                    "所有条码数据、图片和项目都在本机处理。无需云端账号，不收集遥测数据。",
+                    "All barcode data, images, and projects are processed locally. No cloud account. Usage counts are off until you turn them on, and never contain barcode content.",
+                    "所有条码数据、图片和项目都在本机处理。无需云端账号。使用计数默认关闭，开启后也只发送匿名计数，绝不包含条码内容。",
                   )}
                 </p>
+                <div className="usage-setting">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={usageOn}
+                      onChange={async (e) => {
+                        const next = await window.desktop.usage.decide(e.target.checked);
+                        setUsageOn(next.enabled);
+                      }}
+                    />
+                    <span>{L("Send anonymous usage counts", "发送匿名使用计数")}</span>
+                  </label>
+                  <button
+                    className="link-button"
+                    onClick={async () => {
+                      setUsageLog(await window.desktop.usage.sent());
+                      setModal("usage");
+                    }}
+                  >
+                    {L("See exactly what was sent", "查看已发送的全部数据")}
+                  </button>
+                </div>
                 <p className="muted-note">
                   {L(
                     "BarcodeMate is open-source software under the MIT License. Third-party licenses are bundled in THIRD_PARTY_NOTICES.txt.",
