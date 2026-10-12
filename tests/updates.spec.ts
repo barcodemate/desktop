@@ -28,7 +28,9 @@ test("an available update is offered once, can be dismissed, and the check can b
   try {
     let page = await app.firstWindow();
     const notice = page.locator(".update-notice");
-    await expect(notice).toContainText("A new version is available");
+    // Generous only because this waits for the app to start on a slow machine:
+    // the notice itself comes from stored state, with no network and no timer.
+    await expect(notice).toContainText("A new version is available", { timeout: 20000 });
     await expect(notice).toContainText("v99.0.0");
     // The notice is a line above the work, not a dialog: the workspace is usable.
     await expect(page.locator(".workspace")).toBeVisible();

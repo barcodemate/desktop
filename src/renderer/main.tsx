@@ -393,9 +393,13 @@ function App() {
   const [update, setUpdate] = useState<UpdateStatus>({ enabled: true, latest: null, available: false });
   useEffect(() => {
     let cancelled = false;
-    // Asked after the window is up, so a slow or blocked network delays nothing.
+    const show = (s: UpdateStatus) => { if (!cancelled) setUpdate(s); };
+    // What is already known is shown at once: someone who saw a new version
+    // yesterday should not watch the line appear seconds into their work.
+    void window.desktop.updates.state().then(show).catch(() => {});
+    // Asking the site waits, so a slow or blocked network delays nothing.
     const timer = setTimeout(() => {
-      void window.desktop.updates.check().then((s) => { if (!cancelled) setUpdate(s); }).catch(() => {});
+      void window.desktop.updates.check().then(show).catch(() => {});
     }, 4000);
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
