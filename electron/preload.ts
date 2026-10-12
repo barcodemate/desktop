@@ -20,6 +20,13 @@ contextBridge.exposeInMainWorld("desktop", {
     sent: () => ipcRenderer.invoke("usage:sent"),
     forget: () => ipcRenderer.invoke("usage:forget"),
   },
+  updates: {
+    state: () => ipcRenderer.invoke("updates:state"),
+    check: () => ipcRenderer.invoke("updates:check"),
+    allow: (enabled: boolean) => ipcRenderer.invoke("updates:allow", enabled),
+    dismiss: () => ipcRenderer.invoke("updates:dismiss"),
+    openPage: () => ipcRenderer.invoke("updates:openPage"),
+  },
   info: () => ipcRenderer.invoke("info"),
   openProject: () => ipcRenderer.invoke("project:open"),
   saveProject: (p: unknown) => ipcRenderer.invoke("project:save", p),

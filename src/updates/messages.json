@@ -1,0 +1,170 @@
+{
+  "en": {
+    "title": "A new version is available",
+    "open": "Open the download page",
+    "later": "Not now",
+    "setting": "Check for new versions",
+    "note": "Asks our website once a day which version is current. Nothing about you or this computer is sent, and nothing is downloaded or installed on its own."
+  },
+  "zh-Hans": {
+    "title": "有新版本可用",
+    "open": "打开下载页",
+    "later": "暂不",
+    "setting": "检查新版本",
+    "note": "每天向本站询问一次当前版本号。不发送任何与你或本机有关的信息，也不会自动下载或安装。"
+  },
+  "zh-Hant": {
+    "title": "有新版本可用",
+    "open": "開啟下載頁",
+    "later": "暫不",
+    "setting": "檢查新版本",
+    "note": "每天向本站詢問一次目前版本號。不會傳送任何與你或本機有關的資訊，也不會自動下載或安裝。"
+  },
+  "es": {
+    "title": "Hay una versión nueva disponible",
+    "open": "Abrir la página de descarga",
+    "later": "Ahora no",
+    "setting": "Buscar versiones nuevas",
+    "note": "Pregunta una vez al día a nuestro sitio web cuál es la versión actual. No se envía nada sobre ti ni sobre este ordenador, y no se descarga ni instala nada por su cuenta."
+  },
+  "fr": {
+    "title": "Une nouvelle version est disponible",
+    "open": "Ouvrir la page de téléchargement",
+    "later": "Pas maintenant",
+    "setting": "Rechercher les nouvelles versions",
+    "note": "Demande une fois par jour à notre site web quelle est la version actuelle. Rien sur vous ni sur cet ordinateur n’est envoyé, et rien n’est téléchargé ou installé automatiquement."
+  },
+  "de": {
+    "title": "Eine neue Version ist verfügbar",
+    "open": "Download-Seite öffnen",
+    "later": "Jetzt nicht",
+    "setting": "Nach neuen Versionen suchen",
+    "note": "Fragt einmal täglich bei unserer Website nach der aktuellen Version. Es wird nichts über Sie oder diesen Computer gesendet, und nichts wird von selbst heruntergeladen oder installiert."
+  },
+  "pt": {
+    "title": "Há uma nova versão disponível",
+    "open": "Abrir a página de download",
+    "later": "Agora não",
+    "setting": "Procurar novas versões",
+    "note": "Pergunta uma vez por dia ao nosso site qual é a versão atual. Nada sobre você ou sobre este computador é enviado, e nada é baixado ou instalado sozinho."
+  },
+  "ja": {
+    "title": "新しいバージョンがあります",
+    "open": "ダウンロードページを開く",
+    "later": "後で",
+    "setting": "新しいバージョンを確認する",
+    "note": "1 日に 1 回、当サイトに最新のバージョン番号を問い合わせます。あなたやこのコンピューターに関する情報は送信されず、自動的にダウンロードやインストールが行われることもありません。"
+  },
+  "ko": {
+    "title": "새 버전이 있습니다",
+    "open": "다운로드 페이지 열기",
+    "later": "나중에",
+    "setting": "새 버전 확인",
+    "note": "하루에 한 번 저희 웹사이트에 현재 버전을 문의합니다. 사용자나 이 컴퓨터에 관한 정보는 전송되지 않으며, 자동으로 내려받거나 설치하지 않습니다."
+  },
+  "it": {
+    "title": "È disponibile una nuova versione",
+    "open": "Apri la pagina di download",
+    "later": "Non ora",
+    "setting": "Cerca nuove versioni",
+    "note": "Chiede una volta al giorno al nostro sito quale sia la versione attuale. Non viene inviato nulla su di te o su questo computer e nulla viene scaricato o installato da solo."
+  },
+  "ru": {
+    "title": "Доступна новая версия",
+    "open": "Открыть страницу загрузки",
+    "later": "Не сейчас",
+    "setting": "Проверять новые версии",
+    "note": "Раз в сутки запрашивает у нашего сайта текущий номер версии. Ничего о вас или об этом компьютере не отправляется, и ничего не скачивается и не устанавливается само."
+  },
+  "ar": {
+    "title": "تتوفر نسخة جديدة",
+    "open": "فتح صفحة التنزيل",
+    "later": "ليس الآن",
+    "setting": "البحث عن نسخ جديدة",
+    "note": "يسأل موقعنا مرة واحدة يوميًا عن رقم النسخة الحالية. لا يُرسل أي شيء عنك أو عن هذا الحاسوب، ولا يجري تنزيل أو تثبيت أي شيء تلقائيًا."
+  },
+  "hi": {
+    "title": "नया संस्करण उपलब्ध है",
+    "open": "डाउनलोड पृष्ठ खोलें",
+    "later": "अभी नहीं",
+    "setting": "नए संस्करण जाँचें",
+    "note": "दिन में एक बार हमारी वेबसाइट से वर्तमान संस्करण संख्या पूछता है। आपके या इस कंप्यूटर के बारे में कुछ नहीं भेजा जाता, और कुछ भी अपने आप डाउनलोड या इंस्टॉल नहीं होता।"
+  },
+  "id": {
+    "title": "Versi baru tersedia",
+    "open": "Buka halaman unduhan",
+    "later": "Nanti saja",
+    "setting": "Periksa versi baru",
+    "note": "Menanyakan versi terkini ke situs kami sekali sehari. Tidak ada informasi tentang Anda atau komputer ini yang dikirim, dan tidak ada yang diunduh atau dipasang dengan sendirinya."
+  },
+  "tr": {
+    "title": "Yeni bir sürüm var",
+    "open": "İndirme sayfasını aç",
+    "later": "Şimdi değil",
+    "setting": "Yeni sürümleri denetle",
+    "note": "Günde bir kez sitemize güncel sürüm numarasını sorar. Sizinle veya bu bilgisayarla ilgili hiçbir şey gönderilmez, hiçbir şey kendiliğinden indirilmez veya kurulmaz."
+  },
+  "vi": {
+    "title": "Đã có phiên bản mới",
+    "open": "Mở trang tải xuống",
+    "later": "Để sau",
+    "setting": "Kiểm tra phiên bản mới",
+    "note": "Mỗi ngày hỏi trang web của chúng tôi một lần về số phiên bản hiện tại. Không gửi bất kỳ thông tin nào về bạn hay máy tính này, và không tự tải xuống hoặc cài đặt."
+  },
+  "th": {
+    "title": "มีเวอร์ชันใหม่",
+    "open": "เปิดหน้าดาวน์โหลด",
+    "later": "ไว้ก่อน",
+    "setting": "ตรวจหาเวอร์ชันใหม่",
+    "note": "สอบถามเว็บไซต์ของเราวันละครั้งว่าเวอร์ชันปัจจุบันคือรุ่นใด ไม่มีการส่งข้อมูลเกี่ยวกับคุณหรือคอมพิวเตอร์เครื่องนี้ และไม่มีการดาวน์โหลดหรือติดตั้งเองโดยอัตโนมัติ"
+  },
+  "pl": {
+    "title": "Dostępna jest nowa wersja",
+    "open": "Otwórz stronę pobierania",
+    "later": "Nie teraz",
+    "setting": "Sprawdzaj nowe wersje",
+    "note": "Raz dziennie pyta naszą witrynę o aktualny numer wersji. Nic o Tobie ani o tym komputerze nie jest wysyłane i nic nie pobiera się ani nie instaluje samo."
+  },
+  "nl": {
+    "title": "Er is een nieuwe versie",
+    "open": "Downloadpagina openen",
+    "later": "Niet nu",
+    "setting": "Controleren op nieuwe versies",
+    "note": "Vraagt één keer per dag aan onze website wat de huidige versie is. Er wordt niets over u of deze computer verzonden, en er wordt niets vanzelf gedownload of geïnstalleerd."
+  },
+  "uk": {
+    "title": "Доступна нова версія",
+    "open": "Відкрити сторінку завантаження",
+    "later": "Не зараз",
+    "setting": "Перевіряти нові версії",
+    "note": "Раз на добу запитує в нашого сайту поточний номер версії. Нічого про вас або цей комп’ютер не надсилається, і ніщо не завантажується та не встановлюється саме собою."
+  },
+  "ms": {
+    "title": "Versi baharu tersedia",
+    "open": "Buka halaman muat turun",
+    "later": "Bukan sekarang",
+    "setting": "Semak versi baharu",
+    "note": "Bertanya kepada laman web kami sekali sehari tentang nombor versi semasa. Tiada apa-apa tentang anda atau komputer ini dihantar, dan tiada apa-apa dimuat turun atau dipasang dengan sendirinya."
+  },
+  "bn": {
+    "title": "নতুন সংস্করণ এসেছে",
+    "open": "ডাউনলোড পাতা খুলুন",
+    "later": "এখন নয়",
+    "setting": "নতুন সংস্করণ দেখুন",
+    "note": "দিনে একবার আমাদের ওয়েবসাইটে বর্তমান সংস্করণ নম্বর জানতে চায়। আপনার বা এই কম্পিউটারের সম্পর্কে কিছুই পাঠানো হয় না, এবং নিজে থেকে কিছু ডাউনলোড বা ইনস্টল হয় না।"
+  },
+  "fa": {
+    "title": "نسخهٔ جدیدی در دسترس است",
+    "open": "باز کردن صفحهٔ دانلود",
+    "later": "الان نه",
+    "setting": "بررسی نسخه‌های جدید",
+    "note": "روزی یک بار شمارهٔ نسخهٔ فعلی را از وب‌سایت ما می‌پرسد. هیچ چیزی دربارهٔ شما یا این رایانه فرستاده نمی‌شود و چیزی خودبه‌خود دانلود یا نصب نمی‌شود."
+  },
+  "he": {
+    "title": "קיימת גרסה חדשה",
+    "open": "פתיחת עמוד ההורדה",
+    "later": "לא עכשיו",
+    "setting": "בדיקת גרסאות חדשות",
+    "note": "שואל את האתר שלנו פעם ביום מהי הגרסה הנוכחית. שום דבר עליך או על המחשב הזה אינו נשלח, ושום דבר אינו יורד או מותקן מעצמו."
+  }
+}

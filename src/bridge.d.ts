@@ -1,4 +1,5 @@
 import type { Project } from "./core/model";
+export interface UpdateStatus { enabled: boolean; latest: string | null; available: boolean }
 export interface DesktopAPI {
   feedback: (method:"GET"|"POST",path:string,body?:unknown,files?:{bytes:Uint8Array;type:string}[]) => Promise<{status:number;data:any}>;
   warehouseCheck(address: {host:string;port:number}): Promise<import("../electron/warehouse-printer").PrinterInfo>;
@@ -24,6 +25,13 @@ export interface DesktopAPI {
     track(event: string, type: string): Promise<boolean>;
     sent(): Promise<{ at: string; event: string; type: string }[]>;
     forget(): Promise<void>;
+  };
+  updates: {
+    state(): Promise<UpdateStatus>;
+    check(): Promise<UpdateStatus>;
+    allow(enabled: boolean): Promise<UpdateStatus>;
+    dismiss(): Promise<UpdateStatus>;
+    openPage(): Promise<void>;
   };
   info(): Promise<{
     platform: string;

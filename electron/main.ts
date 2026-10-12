@@ -1,6 +1,7 @@
 import {feedbackRequest} from "./feedback";
 import {readPrinterInfo,sendPrinter} from "./warehouse-printer";
 import { Usage, post } from "./usage";
+import { Updates, askSite } from "./updates";
 import barcodeCatalog from "../src/core/catalog.json" with { type: "json" };
 import {
   app,
@@ -14,6 +15,7 @@ import {
   clipboard,
   nativeImage,
   ClipboardItem,
+  shell,
 } from "electron";
 import { readFile, writeFile, rename, mkdir, stat } from "node:fs/promises";
 import path from "node:path";
@@ -64,6 +66,21 @@ const usageCounter = () =>
     },
     new Set(barcodeCatalog.map((type) => type.id)),
     post,
+  ));
+// A version check against our own site, at most daily. It sends nothing
+// about this machine, and can be switched off in About.
+let updates: Updates | undefined;
+const updateNotice = () =>
+  (updates ??= new Updates(
+    {
+      read: (name) => readJSON(dataFile(name)),
+      write: (name, data) => atomic(dataFile(name), data),
+    },
+    app.getVersion(),
+    // The acceptance suite must never reach the real website: a test run that
+    // asked would count as traffic, and a test that depended on the answer
+    // would fail whenever the site changed or was unreachable.
+    testMode ? async () => { throw new Error("No network in tests"); } : askSite,
   ));
 async function readJSON(file: string) {
   try {
@@ -315,6 +332,17 @@ app.whenReady().then(async () => {
     usageCounter().track(String(event), String(type)));
   safeHandler("usage:sent", () => usageCounter().sent());
   safeHandler("usage:forget", () => usageCounter().forget());
+  safeHandler("updates:state", () => updateNotice().current());
+  safeHandler("updates:check", () => updateNotice().check());
+  safeHandler("updates:allow", (enabled: unknown) => updateNotice().allow(enabled === true));
+  safeHandler("updates:dismiss", () => updateNotice().dismiss());
+  // The only address this app will ever hand to a browser. The renderer picks
+  // nothing: the host and path are fixed here and the language must be one we
+  // ship, so a compromised page cannot turn this into an open redirect.
+  safeHandler("updates:openPage", async () => {
+    const code = languages.some((l) => l.code === uiLanguage) ? uiLanguage : "en";
+    await shell.openExternal("https://barcodemate.com/" + code + "/desktop/");
+  });
   safeHandler("info", () => ({
     platform: process.platform,
     version: app.getVersion(),

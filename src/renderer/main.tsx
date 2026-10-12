@@ -88,6 +88,8 @@ import { UseCases } from "../home/UseCases";
 import { Warehouse } from "../warehouse/Warehouse";
 import { HomeLabels } from "../home/HomeLabels";
 import { text as homeText } from "../home/i18n";
+import { updateText } from "../updates/i18n";
+import type { UpdateStatus } from "../bridge";
 
 type Tab =
   "feedback" | "scenarios" | "home" | "warehouse" | "retail" | "design" | "batch" | "labels" | "library" | "scan";
@@ -387,6 +389,15 @@ function App() {
       setLibrary(projects);
       initialized.current = true;
     });
+  }, []);
+  const [update, setUpdate] = useState<UpdateStatus>({ enabled: true, latest: null, available: false });
+  useEffect(() => {
+    let cancelled = false;
+    // Asked after the window is up, so a slow or blocked network delays nothing.
+    const timer = setTimeout(() => {
+      void window.desktop.updates.check().then((s) => { if (!cancelled) setUpdate(s); }).catch(() => {});
+    }, 4000);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []);
   useEffect(() => {
     // Ask once, on the first run. Until there is an answer, nothing is sent.
@@ -1043,6 +1054,22 @@ function App() {
             </div>
           )}
         </header>
+        {update.available && (
+          <div className="update-notice" role="status">
+            <span>
+              {updateText(language, "title")} <strong>v{update.latest}</strong>
+            </span>
+            <button className="link-button" onClick={() => void window.desktop.updates.openPage()}>
+              {updateText(language, "open")}
+            </button>
+            <button
+              className="link-button"
+              onClick={async () => setUpdate(await window.desktop.updates.dismiss())}
+            >
+              {updateText(language, "later")}
+            </button>
+          </div>
+        )}
         <div className="workspace">
           {!isAuxiliary && (
             <div className="page-heading">
@@ -2984,8 +3011,8 @@ function App() {
                 </p>
                 <p>
                   {L(
-                    "All barcode data, images, and projects are processed locally. No cloud account. Usage counts are off until you turn them on, and never contain barcode content.",
-                    "所有条码数据、图片和项目都在本机处理。无需云端账号。使用计数默认关闭，开启后也只发送匿名计数，绝不包含条码内容。",
+                    "All barcode data, images, and projects are processed locally. No cloud account. Usage counts are off until you turn them on, and never contain barcode content. The only other request this app makes on its own is the daily version check below.",
+                    "所有条码数据、图片和项目都在本机处理。无需云端账号。使用计数默认关闭，开启后也只发送匿名计数，绝不包含条码内容。除下方每日一次的版本检查外，本应用不会自行发出其他请求。",
                   )}
                 </p>
                 <div className="usage-setting">
@@ -3009,6 +3036,17 @@ function App() {
                   >
                     {L("See exactly what was sent", "查看已发送的全部数据")}
                   </button>
+                </div>
+                <div className="usage-setting">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={update.enabled}
+                      onChange={async (e) => setUpdate(await window.desktop.updates.allow(e.target.checked))}
+                    />
+                    <span>{updateText(language, "setting")}</span>
+                  </label>
+                  <small>{updateText(language, "note")}</small>
                 </div>
                 <p className="muted-note">
                   {L(

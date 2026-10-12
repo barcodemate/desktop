@@ -1473,3 +1473,23 @@ progress {
 .usage-log time{color:var(--muted,#686b7d);font-variant-numeric:tabular-nums;white-space:nowrap}
 .usage-log code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+
+/* A single line above the workspace. It never covers the work, and the two
+   actions are plain links: nothing here downloads or installs anything. */
+.update-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 9px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line, #d9dee6);
+  background: var(--notice, #eef3ff);
+  color: inherit;
+}
+.update-notice strong { font-weight: 650; }
+.update-notice .link-button { font-size: 13px; }
+.update-notice button:last-child { margin-inline-start: auto; opacity: 0.75; }
+@media (prefers-color-scheme: dark) {
+  .update-notice { background: #1d2740; border-bottom-color: #2c3850; }
+}
