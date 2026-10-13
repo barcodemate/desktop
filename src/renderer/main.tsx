@@ -327,6 +327,23 @@ function App() {
   const count = (event: string, type: string) => {
     void window.desktop.usage.track(event, type).catch(() => {});
   };
+  /**
+   * run() for a step worth counting. A step that throws is a defect and is
+   * reported as app_fail; a step the person backed out of is app_cancel. Only
+   * the step name travels — never the error text, which can hold a file name.
+   */
+  const step = (
+    name: "generate" | "import" | "print" | "export",
+    fn: () => Promise<unknown> | unknown,
+  ) =>
+    run(async () => {
+      try {
+        await fn();
+      } catch (e) {
+        count("app_fail", name);
+        throw e;
+      }
+    });
   const importFile = () =>
     run(async () => {
       const r = await window.desktop.importTable();
@@ -345,7 +362,7 @@ function App() {
       notify(L("Saved to your library", "已保存到项目库"));
     });
   const printLabels = (pdf: boolean) =>
-    run(async () => {
+    step("print", async () => {
       setBusy("Preparing pages…");
       try {
         count("app_print", pdf ? "pdf" : "system");
@@ -363,7 +380,7 @@ function App() {
               ? L("PDF saved", "PDF 已保存")
               : L("Sent to printer", "已发送到打印机"),
           );
-        else count("app_fail", "print");
+        else count("app_cancel", "print");
       } finally {
         setBusy("");
       }
@@ -603,7 +620,7 @@ function App() {
       rows: p.rows.map((r) => (r.id === id ? { ...r, ...patch } : r)),
     }));
   const exportSingle = () =>
-    run(async () => {
+    step("export", async () => {
       if (format === "pdf") {
         const v = encode(project.design);
         const html = `<!doctype html><meta charset="utf-8"><style>@page{size:${v.widthMm}mm ${v.heightMm}mm;margin:0}body{margin:0}</style>${v.svg}`;
@@ -624,11 +641,11 @@ function App() {
           extension: format,
         });
         if (name) { count("app_export", format); notify(L("Exported ", "已导出 ") + name); }
-        else count("app_fail", "export");
+        else count("app_cancel", "export");
       }
     });
   const exportBatch = () =>
-    run(async () => {
+    step("export", async () => {
       if (format === "pdf") {
         setTab("labels");
         return;
@@ -650,13 +667,13 @@ function App() {
           extension: "zip",
         });
         if (name) { count("app_export", "zip"); notify(L("Batch exported", "批量导出完成")); }
-        else count("app_fail", "export");
+        else count("app_cancel", "export");
       } finally {
         setBusy("");
       }
     });
   const importRows = () =>
-    run(() => {
+    step("import", () => {
       if (table.error) throw Error(table.error);
       if (!table.rows.length)
         throw Error(

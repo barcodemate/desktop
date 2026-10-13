@@ -65,7 +65,9 @@ const usageCounter = () =>
       write: (name, data) => atomic(dataFile(name), data),
     },
     new Set(barcodeCatalog.map((type) => type.id)),
-    post,
+    // Consent already defaults to off, so tests send nothing; this makes that
+    // a property of the build rather than of every test remembering to.
+    testMode ? async () => { throw new Error("No network in tests"); } : post,
   ));
 // A version check against our own site, at most daily. It sends nothing
 // about this machine, and can be switched off in About.

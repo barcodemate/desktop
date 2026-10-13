@@ -27,11 +27,16 @@ test("only whitelisted event and type pairs can be sent", () => {
   assert.equal(allowed("app_export", "png", formats), true);
   assert.equal(allowed("app_fail", "print", formats), true);
   assert.equal(allowed("app_fail", "TypeError: cannot read x of undefined", formats), false);
+  // Backing out of a dialog is a separate event from a step that threw.
+  assert.equal(allowed("app_cancel", "export", formats), true);
+  assert.equal(allowed("app_cancel", "print", formats), true);
+  assert.equal(allowed("app_cancel", "/Users/someone/labels.pdf", formats), false);
   assert.equal(allowed("app_everything", "code128", formats), false);
   assert.equal(allowed("app_generate", "x".repeat(41), formats), false);
-  // The set is closed: nothing outside it is a valid event at all.
+  // The set is closed: nothing outside it is a valid event at all. The count is
+  // asserted so that growing it stays a deliberate, reviewed change.
   for (const event of EVENTS) assert.equal(typeof event, "string");
-  assert.equal(EVENTS.length, 6);
+  assert.equal(EVENTS.length, 7);
 });
 
 test("nothing is sent before consent, and consent is not implied by a corrupt file", async () => {

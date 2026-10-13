@@ -9,6 +9,10 @@
  *
  * Every accepted payload is also appended to a local log the person can read
  * in the app, so the claim above is checkable rather than merely stated.
+ *
+ * app_cancel and app_fail both carry a step name and are deliberately separate:
+ * closing a save dialog is a choice, a step that threw is a defect. Counting
+ * both as one number made every cancellation look like a bug.
  */
 
 export const ENDPOINT = "https://barcodemate.com/api/usage";
@@ -19,6 +23,7 @@ export const EVENTS = [
   "app_print",
   "app_export",
   "app_fail",
+  "app_cancel",
 ] as const;
 export type UsageEvent = (typeof EVENTS)[number];
 
@@ -38,6 +43,7 @@ export function allowed(event: string, type: string, formats: ReadonlySet<string
     case "app_print": return TARGETS.has(type);
     case "app_export": return FILES.has(type);
     case "app_fail": return STEPS.has(type);
+    case "app_cancel": return STEPS.has(type);
     default: return false;
   }
 }
