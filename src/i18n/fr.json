@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Ligne {number} : la quantité doit être un entier de 1 à 10 000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” est plus grande que l’étiquette à sa taille réelle. Réduisez la largeur ou la hauteur du module, ou choisissez une étiquette plus grande.",
   "Technical details: {detail}": "Détails techniques : {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Ces valeurs comportent toutes {digits} chiffres, ce qui correspond à {name} plutôt qu’à {current}.",
+  "Switch to {name}": "Passer à {name}",
   "Maximum 10,000 rows per project.": "Maximum 10 000 lignes par projet.",
   "Enter a complete http:// or https:// URL.": "Entrez une URL complète http:// ou https://.",
   "Choose an image under 20 MB.": "Choisissez une image de moins de 20 Mo.",

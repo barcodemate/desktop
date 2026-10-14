@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Rij {number}: de hoeveelheid moet een geheel getal zijn van 1 tot 10.000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” is groter dan het label in de werkelijke grootte. Verklein de modulobreedte of -hoogte, of kies een groter label.",
   "Technical details: {detail}": "Technische details: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Deze waarden hebben allemaal {digits} cijfers, wat overeenkomt met {name} in plaats van {current}.",
+  "Switch to {name}": "Overschakelen naar {name}",
   "Maximum 10,000 rows per project.": "Maximaal 10.000 rijen per project.",
   "Enter a complete http:// or https:// URL.": "Voer een volledige http:// of https:// URL in.",
   "Choose an image under 20 MB.": "Kies een afbeelding kleiner dan 20 MB.",

@@ -266,6 +266,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Row {number}: quantity must be an integer from 1 to 10,000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.",
   "Technical details: {detail}": "Technical details: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "These values all have {digits} digits, which matches {name} rather than {current}.",
+  "Switch to {name}": "Switch to {name}",
   "Maximum 10,000 rows per project.": "Maximum 10,000 rows per project.",
   "Enter a complete http:// or https:// URL.": "Enter a complete http:// or https:// URL.",
   "Choose an image under 20 MB.": "Choose an image under 20 MB.",

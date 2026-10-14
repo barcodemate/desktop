@@ -13,6 +13,7 @@ import { encode, checkDigit } from "../src/core/barcode";
 import {
   parseTable,
   mapRows,
+  suggestType,
   sequence,
   labelPages,
   labelDocument,
@@ -91,6 +92,38 @@ test("CSV mapping preserves text, quoted commas, multiline values and quantities
       ),
     /quantity/,
   );
+});
+test("a uniform column of digits names its retail format, and stays quiet when it cannot", () => {
+  const ean = ["5901234123457", "4006381333931"];
+  assert.deepEqual(suggestType(ean, "code128", catalog), {
+    id: "ean13",
+    length: 13,
+  });
+  // Blanks are not data, and padding never changes the reading.
+  assert.deepEqual(suggestType(["  5901234123457  ", "", "4006381333931"], "code128", catalog), {
+    id: "ean13",
+    length: 13,
+  });
+  // A complete code outranks one of a different format missing its check
+  // digit: twelve digits is a UPC-A far more often than a headless EAN-13.
+  assert.equal(suggestType(["012345678905"], "code128", catalog)?.id, "upca");
+  assert.equal(suggestType(["01234567890"], "code128", catalog)?.id, "upca");
+  assert.equal(suggestType(["12345670"], "code128", catalog)?.id, "ean8");
+  // Nothing to say: already set to it, not all digits, uneven lengths, no
+  // format claims that width, or an empty column.
+  assert.equal(suggestType(ean, "ean13", catalog), null);
+  assert.equal(suggestType(["5901234123457", "MATE-2026-001"], "code128", catalog), null);
+  assert.equal(suggestType(["5901234123457", "590123412345"], "code128", catalog), null);
+  assert.equal(suggestType(["123456789012345678"], "code128", catalog), null);
+  assert.equal(suggestType(["", "   "], "code128", catalog), null);
+  assert.equal(suggestType([], "code128", catalog), null);
+  // Every suggestion is a real format that accepts data of that width, so the
+  // switch it offers cannot land the project on something invalid.
+  for (const digits of [7, 8, 11, 12, 13]) {
+    const match = suggestType(["1".repeat(digits)], "code128", catalog);
+    const type = catalog.find((t) => t.id === match!.id)!;
+    assert([type.digits - 1, type.digits].includes(digits), String(digits));
+  }
 });
 test("default label layout fits real barcode and labels preserve quantities and skipped positions", () => {
   const p = newProject();

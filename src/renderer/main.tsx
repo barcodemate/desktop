@@ -67,6 +67,7 @@ import { encode } from "../core/barcode";
 import {
   parseTable,
   mapRows,
+  suggestType,
   sequence,
   rowsToCSV,
   labelPages,
@@ -344,6 +345,15 @@ function App() {
         throw e;
       }
     });
+  /**
+   * Picking a format starts it from its own sample, because the data that
+   * suited the previous one usually will not encode. Shared with the import
+   * hint so both routes leave the project in the same state.
+   */
+  const chooseType = (t: (typeof catalog)[number]) => {
+    count("app_generate", t.id);
+    design({ type: t.id, data: t.sample, options: "{}", logo: "" });
+  };
   const importFile = () =>
     run(async () => {
       const r = await window.desktop.importTable();
@@ -584,6 +594,24 @@ function App() {
       return { rows: [], error: errorText(e) };
     }
   }, [importText]);
+  /**
+   * Whether the column about to be imported looks like a format other than the
+   * one the labels are set to. Silent when a Format ID column is mapped, since
+   * then each row names its own and the project setting does not apply.
+   */
+  const suggestion = useMemo(() => {
+    if (table.error || mapping.type >= 0) return null;
+    const match = suggestType(
+      table.rows
+        .slice(hasHeader ? 1 : 0)
+        .map((cells) => cells[mapping.data] ?? ""),
+      project.design.type,
+      catalog,
+    );
+    return match && catalog.find((t) => t.id === match.id)
+      ? { length: match.length, type: catalog.find((t) => t.id === match.id)! }
+      : null;
+  }, [table, hasHeader, mapping.data, mapping.type, project.design.type]);
   const seqPreview = useMemo(() => {
     try {
       return {
@@ -1275,16 +1303,9 @@ function App() {
                   <span>{L("Barcode format", "条码格式")}</span>
                   <select
                     value={project.design.type}
-                    onChange={(e) => {
-                      const t = catalog.find((t) => t.id === e.target.value)!;
-                      count("app_generate", t.id);
-                      design({
-                        type: t.id,
-                        data: t.sample,
-                        options: "{}",
-                        logo: "",
-                      });
-                    }}
+                    onChange={(e) =>
+                      chooseType(catalog.find((t) => t.id === e.target.value)!)
+                    }
                   >
                     {!filtered.some((t) => t.id === type.id) && (
                       <option value={type.id}>{type.name}</option>
@@ -2680,6 +2701,30 @@ function App() {
                     ),
                   )}
                 </div>
+                {suggestion && (
+                  <p className="import-hint">
+                    <span>
+                      {L(
+                        "These values all have {digits} digits, which matches {name} rather than {current}.",
+                        undefined,
+                        {
+                          digits: suggestion.length,
+                          name: suggestion.type.name,
+                          current: type.name,
+                        },
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => chooseType(suggestion.type)}
+                    >
+                      {L("Switch to {name}", undefined, {
+                        name: suggestion.type.name,
+                      })}
+                    </button>
+                  </p>
+                )}
                 {table.rows.length > 0 && (
                   <div className="import-preview">
                     <table>

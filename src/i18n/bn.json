@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "সারি {number}: পরিমাণ অবশ্যই 1 থেকে 10,000 পর্যন্ত একটি পূর্ণসংখ্যা হতে হবে।",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” এর আসল আকারের তুলনায় লেবেল থেকে বড়। মডিউল প্রস্থ বা উচ্চতা কমান, বা বড় লেবেল নির্বাচন করুন।",
   "Technical details: {detail}": "প্রযুক্তিগত বিবরণ: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "এই সব মানে {digits} সংখ্যা রয়েছে, যা {current} নয় বরং {name} এর সঙ্গে মেলে।",
+  "Switch to {name}": "{name}-এ পরিবর্তন করুন",
   "Maximum 10,000 rows per project.": "প্রতি প্রকল্পে সর্বাধিক 10,000 সারি।",
   "Enter a complete http:// or https:// URL.": "একটি সম্পূর্ণ http:// বা https:// URL প্রবেশ করুন।",
   "Choose an image under 20 MB.": "20 MB এর নিচে একটি ইমেজ নির্বাচন করুন।",

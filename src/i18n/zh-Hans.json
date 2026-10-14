@@ -266,6 +266,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "第 {number} 行：份数必须是 1 到 10,000 的整数。",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}”的实际尺寸大于标签，请减小模块宽度或高度，或选择更大的标签。",
   "Technical details: {detail}": "技术详情：{detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "这些数据都是 {digits} 位数字，更像 {name} 而不是 {current}。",
+  "Switch to {name}": "切换为 {name}",
   "Use digits only.": "只使用数字。",
   "Inventory & shipping": "库存与发货",
   "Letters, numbers and symbols. Great for SKUs and internal inventory.": "字母、数字和符号。非常适合SKU和内部库存。",

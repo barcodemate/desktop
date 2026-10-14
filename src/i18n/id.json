@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Baris {number}: jumlah harus bilangan bulat antara 1 sampai 10.000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” lebih besar dari label dengan ukuran aslinya. Kurangi lebar atau tinggi modul, atau pilih label yang lebih besar.",
   "Technical details: {detail}": "Detail teknis: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Semua nilai ini memiliki {digits} digit, yang cocok dengan {name} alih-alih {current}.",
+  "Switch to {name}": "Ganti ke {name}",
   "Maximum 10,000 rows per project.": "Maksimal 10.000 baris per proyek.",
   "Enter a complete http:// or https:// URL.": "Masukkan URL lengkap http:// atau https://.",
   "Choose an image under 20 MB.": "Pilih gambar di bawah 20 MB.",

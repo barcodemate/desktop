@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "列 {number}: 數量必須為 1 到 10,000 的整數。",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” 實際尺寸比標籤大。請縮小模組寬度或高度，或選擇更大的標籤。",
   "Technical details: {detail}": "技術細節: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "這些資料都是 {digits} 位數字，更像 {name} 而不是 {current}。",
+  "Switch to {name}": "切換為 {name}",
   "Maximum 10,000 rows per project.": "每個專案最多 10,000 行。",
   "Enter a complete http:// or https:// URL.": "輸入完整的 http:// 或 https:// 網址。",
   "Choose an image under 20 MB.": "選擇小於 20 MB 的圖片。",

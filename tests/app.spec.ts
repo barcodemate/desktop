@@ -199,6 +199,45 @@ test("all image exporters produce usable files and the local reader decodes expo
   });
 });
 
+test("a uniform column of digits offers its retail format without blocking the import", async () => {
+  await page.getByRole("button", { name: "Batch data", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Paste / import", exact: true })
+    .click();
+  // Not an exact label match: React writes a textarea's value into its child
+  // text node, so the wrapping label's text grows to include whatever was
+  // typed and the field can only be found again by prefix.
+  const paste = page.getByLabel("Paste your data");
+  const hint = page.locator(".import-hint");
+  // Mixed content is nobody's retail code, so there is nothing to offer.
+  await paste.fill("code\nMATE-2026-001\n5901234123457");
+  await expect(hint).toHaveCount(0);
+  // Thirteen digits throughout is an EAN-13, and the labels are Code 128.
+  await paste.fill("code\n5901234123457\n4006381333931");
+  await expect(hint).toContainText("13 digits");
+  await expect(hint).toContainText("EAN-13");
+  await expect(hint).toContainText("Code 128");
+  // A Format ID column means each row names its own, so the hint stands down.
+  const format = page.getByRole("combobox", { name: "Format ID" });
+  await format.selectOption("0");
+  await expect(hint).toHaveCount(0);
+  await format.selectOption("-1");
+  await expect(hint).toBeVisible();
+  // Taking the offer switches the project, which leaves nothing to say.
+  await page
+    .getByRole("button", { name: "Switch to EAN-13", exact: true })
+    .click();
+  await expect(hint).toHaveCount(0);
+  // The import itself was never blocked, and the format stuck.
+  await page.getByRole("button", { name: "Import rows", exact: true }).click();
+  await expect(page.getByLabel("Data row 1", { exact: true })).toHaveValue(
+    "5901234123457",
+  );
+  await page.getByRole("button", { name: "Design", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Barcode format" }),
+  ).toHaveValue("ean13");
+});
 test("usage counting is off until asked, and the record is readable in the app", async () => {
   // A fresh profile means the first-run question, which blocks nothing else.
   const ask = page.getByRole("heading", { name: "Help improve BarcodeMate?" });

@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Satır {number}: miktar 1 ile 10.000 arasında bir tam sayı olmalı.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” etiketteki gerçek boyutundan daha büyük. Modül genişliğini veya yüksekliğini azaltın ya da daha büyük bir etiket seçin.",
   "Technical details: {detail}": "Teknik detaylar: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Bu değerlerin tümü {digits} haneli ve {current} yerine {name} ile eşleşiyor.",
+  "Switch to {name}": "{name} biçimine geç",
   "Maximum 10,000 rows per project.": "Proje başına maksimum 10.000 satır.",
   "Enter a complete http:// or https:// URL.": "Tam bir http:// veya https:// URL girin.",
   "Choose an image under 20 MB.": "20 MB'den küçük bir resim seçin.",

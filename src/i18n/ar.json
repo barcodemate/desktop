@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "الصف {number}: يجب أن تكون الكمية عددًا صحيحًا من 1 إلى 10,000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "\"{name}\" أكبر من الملصق بحجمه الفعلي. قلل عرض أو ارتفاع الوحدة، أو اختر ملصقًا أكبر.",
   "Technical details: {detail}": "التفاصيل التقنية: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "تحتوي كل هذه القيم على {digits} رقمًا، وهو ما يطابق {name} بدلاً من {current}.",
+  "Switch to {name}": "التبديل إلى {name}",
   "Maximum 10,000 rows per project.": "الحد الأقصى 10,000 صف لكل مشروع.",
   "Enter a complete http:// or https:// URL.": "أدخل رابط كامل http:// أو https://.",
   "Choose an image under 20 MB.": "اختر صورة أصغر من 20 ميغابايت.",

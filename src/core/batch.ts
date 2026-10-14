@@ -49,6 +49,36 @@ export function mapRows(
     };
   });
 }
+/**
+ * A column of same-length digits is almost always a retail code, and the
+ * importer has no way to know what the project is set to: it will happily
+ * render thirteen EAN digits as Code 128, which scans as the right number
+ * under the wrong symbology. Offer the match rather than silently accepting
+ * it — never refuse the import, since printing digits as Code 128 is a real
+ * thing to want.
+ *
+ * Only formats that declare a digit count are considered, so declaring one in
+ * the catalog is enough to widen this. A length two formats could both claim
+ * is left alone instead of guessed at, except that a complete code carrying
+ * its own check digit outranks one that is missing it.
+ */
+export function suggestType(
+  values: readonly string[],
+  current: string,
+  types: readonly { id: string; digits?: number }[],
+): { id: string; length: number } | null {
+  const present = values.map((v) => (v ?? "").trim()).filter(Boolean);
+  if (!present.length || present.some((v) => !/^[0-9]+$/.test(v))) return null;
+  const length = present[0].length;
+  if (present.some((v) => v.length !== length)) return null;
+  const fixed = types.filter((t) => t.digits);
+  const complete = fixed.filter((t) => t.digits === length);
+  const candidates = complete.length
+    ? complete
+    : fixed.filter((t) => t.digits === length + 1);
+  if (candidates.length !== 1 || candidates[0].id === current) return null;
+  return { id: candidates[0].id, length };
+}
 export function sequence(
   start: string,
   count: number,

@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "पंक्ति {number}: मात्रा 1 से 10,000 के बीच पूर्णांक होनी चाहिए।",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” लेबल के वास्तविक आकार से बड़ा है। मॉड्यूल की चौड़ाई या ऊँचाई कम करें, या बड़ा लेबल चुनें।",
   "Technical details: {detail}": "तकनीकी विवरण: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "इन सभी मानों में {digits} अंक हैं, जो {current} के बजाय {name} से मेल खाते हैं।",
+  "Switch to {name}": "{name} पर स्विच करें",
   "Maximum 10,000 rows per project.": "प्रत्येक प्रोजेक्ट में अधिकतम 10,000 पंक्तियाँ हो सकती हैं।",
   "Enter a complete http:// or https:// URL.": "पूरा http:// या https:// URL दर्ज करें।",
   "Choose an image under 20 MB.": "20 एमबी से कम का इमेज चुनें।",

@@ -13,6 +13,7 @@ Object.assign(pairs,{
 'Untitled project':'未命名项目','Inventory label':'库存标签',
 'Enter {short} digits, or {full} with a check digit.':'请输入 {short} 位数字，或包含校验位的 {full} 位数字。','Check digit should be {digit}.':'校验位应为 {digit}。','Module width aligned to {dots} printer dots ({width} mm).':'模块宽度已对齐到 {dots} 个打印点（{width} mm）。','Row {number}: {message}':'第 {number} 行：{message}','Row {number}: quantity must be an integer from 1 to 10,000.':'第 {number} 行：份数必须是 1 到 10,000 的整数。','“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.':'“{name}”的实际尺寸大于标签，请减小模块宽度或高度，或选择更大的标签。',
 'Technical details: {detail}':'技术详情：{detail}',
+'These values all have {digits} digits, which matches {name} rather than {current}.':'这些数据都是 {digits} 位数字，更像 {name} 而不是 {current}。','Switch to {name}':'切换为 {name}',
 });
 const owned=['src/renderer/main.tsx','src/core/barcode.ts','src/core/batch.ts','src/core/model.ts','src/core/assistants.ts','src/renderer/export.ts','electron/main.ts'];
 for(const f of owned){const text=fs.readFileSync(f,'utf8'),sf=ts.createSourceFile(f,text,ts.ScriptTarget.Latest,true,f.endsWith('tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);function walk(n){if(ts.isCallExpression(n)&&n.expression.getText(sf)==='Error'&&n.arguments.length&&ts.isStringLiteral(n.arguments[0]))pairs[n.arguments[0].text]??='';if(ts.isCallExpression(n)&&n.expression.getText(sf)==='warnings.push')for(const a of n.arguments)if(ts.isStringLiteral(a))pairs[a.text]??='';ts.forEachChild(n,walk);}walk(sf)}

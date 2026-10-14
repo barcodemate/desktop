@@ -1167,6 +1167,29 @@ h1 {
   grid-template-columns: repeat(3, 1fr);
   gap: 0 15px;
 }
+/* A suggestion, not a warning: the import is valid either way, so this reads
+   as an offer and keeps the button out of the way of the primary action. */
+.import-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 13px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--notice, #eef3ff);
+}
+.import-hint span {
+  flex: 1 1 220px;
+}
+@media (prefers-color-scheme: dark) {
+  .import-hint {
+    background: #1d2740;
+    border-color: #2c3850;
+  }
+}
 .import-preview {
   max-height: 180px;
   overflow: auto;

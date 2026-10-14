@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "שורה {number}: הכמות חייבת להיות מספר שלם מ-1 עד 10,000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” גדול יותר מהתווית בגודלו האמיתי. הקטן את רוחב או גובה המודול, או בחר תווית גדולה יותר.",
   "Technical details: {detail}": "פרטים טכניים: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "לכל הערכים האלה יש {digits} ספרות, שמתאימות ל-{name} ולא ל-{current}.",
+  "Switch to {name}": "החלפה ל-{name}",
   "Maximum 10,000 rows per project.": "עד 10,000 שורות לכל פרויקט.",
   "Enter a complete http:// or https:// URL.": "הכנס כתובת URL מלאה http:// או https://.",
   "Choose an image under 20 MB.": "בחר תמונה עד 20MB.",

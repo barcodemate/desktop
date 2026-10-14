@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Рядок {number}: кількість має бути цілим числом від 1 до 10 000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” більший за етикетку в реальному розмірі. Зменшіть ширину або висоту модуля, або оберіть більшу етикетку.",
   "Technical details: {detail}": "Технічні деталі: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Усі ці значення містять {digits} цифр, що відповідає {name}, а не {current}.",
+  "Switch to {name}": "Перейти на {name}",
   "Maximum 10,000 rows per project.": "Максимум 10 000 рядків на проект.",
   "Enter a complete http:// or https:// URL.": "Введіть повний URL починаючи з http:// або https://.",
   "Choose an image under 20 MB.": "Виберіть зображення менше 20 МБ.",

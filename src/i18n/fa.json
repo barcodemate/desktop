@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "ردیف {number}: تعداد باید عددی صحیح بین 1 تا 10,000 باشد.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” از برچسب در اندازه واقعی بزرگ‌تر است. عرض یا ارتفاع ماژول را کاهش دهید، یا برچسب بزرگ‌تری انتخاب کنید.",
   "Technical details: {detail}": "جزئیات فنی: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "همه این مقادیر {digits} رقم دارند که با {name} مطابقت دارد، نه {current}.",
+  "Switch to {name}": "تغییر به {name}",
   "Maximum 10,000 rows per project.": "حداکثر 10,000 ردیف در هر پروژه.",
   "Enter a complete http:// or https:// URL.": "یک URL کامل با http:// یا https:// وارد کنید.",
   "Choose an image under 20 MB.": "تصویری کمتر از 20 مگابایت انتخاب کنید.",

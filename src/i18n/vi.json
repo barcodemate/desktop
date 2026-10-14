@@ -345,6 +345,8 @@
   "Row {number}: quantity must be an integer from 1 to 10,000.": "Dòng {number}: số lượng phải là số nguyên từ 1 đến 10.000.",
   "“{name}” is larger than the label at its actual size. Reduce module width or height, or choose a larger label.": "“{name}” lớn hơn nhãn ở kích thước thực tế. Giảm chiều rộng hoặc chiều cao module, hoặc chọn nhãn lớn hơn.",
   "Technical details: {detail}": "Chi tiết kỹ thuật: {detail}",
+  "These values all have {digits} digits, which matches {name} rather than {current}.": "Tất cả các giá trị này có {digits} chữ số, khớp với {name} thay vì {current}.",
+  "Switch to {name}": "Chuyển sang {name}",
   "Maximum 10,000 rows per project.": "Tối đa 10.000 dòng cho mỗi dự án.",
   "Enter a complete http:// or https:// URL.": "Nhập URL đầy đủ http:// hoặc https://.",
   "Choose an image under 20 MB.": "Chọn hình ảnh dưới 20 MB.",
