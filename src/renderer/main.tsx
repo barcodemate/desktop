@@ -1331,6 +1331,12 @@ function App() {
                   </span>
                   <textarea
                     className="barcode-data"
+                    // Named here rather than by the label it sits in: React
+                    // keeps a textarea's value in its child text node, so the
+                    // label's text — and the name a screen reader reads out —
+                    // would otherwise grow to include the Assistant button,
+                    // the hint below, and everything typed into the field.
+                    aria-label={L("Barcode data", "条码数据")}
                     value={project.design.data}
                     onChange={(e) => design({ data: e.target.value })}
                     rows={3}
@@ -1519,6 +1525,7 @@ function App() {
                       {L("Encoder options (JSON)", "编码器选项 (JSON)")}
                     </span>
                     <textarea
+                      aria-label={L("Encoder options (JSON)", "编码器选项 (JSON)")}
                       value={project.design.options}
                       rows={3}
                       spellCheck={false}
@@ -2633,6 +2640,7 @@ function App() {
                 <label className="field">
                   <span>{L("Paste your data", "粘贴数据")}</span>
                   <textarea
+                    aria-label={L("Paste your data", "粘贴数据")}
                     rows={5}
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}

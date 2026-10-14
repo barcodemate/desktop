@@ -204,16 +204,17 @@ test("a uniform column of digits offers its retail format without blocking the i
   await page
     .getByRole("button", { name: "Paste / import", exact: true })
     .click();
-  // Not an exact label match: React writes a textarea's value into its child
-  // text node, so the wrapping label's text grows to include whatever was
-  // typed and the field can only be found again by prefix.
-  const paste = page.getByLabel("Paste your data");
+  const paste = page.getByLabel("Paste your data", { exact: true });
   const hint = page.locator(".import-hint");
   // Mixed content is nobody's retail code, so there is nothing to offer.
   await paste.fill("code\nMATE-2026-001\n5901234123457");
   await expect(hint).toHaveCount(0);
   // Thirteen digits throughout is an EAN-13, and the labels are Code 128.
   await paste.fill("code\n5901234123457\n4006381333931");
+  // The field keeps its own name. React stores a textarea's value in its child
+  // text node, so a field named by the label it sits inside reads back to a
+  // screen reader as its own contents.
+  await expect(paste).toHaveAccessibleName("Paste your data");
   await expect(hint).toContainText("13 digits");
   await expect(hint).toContainText("EAN-13");
   await expect(hint).toContainText("Code 128");
@@ -237,6 +238,10 @@ test("a uniform column of digits offers its retail format without blocking the i
   await expect(
     page.getByRole("combobox", { name: "Barcode format" }),
   ).toHaveValue("ean13");
+  // Same for the data field, whose label also holds a button and a hint.
+  await expect(
+    page.getByLabel("Barcode data", { exact: true }),
+  ).toHaveAccessibleName("Barcode data");
 });
 test("usage counting is off until asked, and the record is readable in the app", async () => {
   // A fresh profile means the first-run question, which blocks nothing else.
