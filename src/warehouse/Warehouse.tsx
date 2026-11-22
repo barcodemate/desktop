@@ -25,6 +25,9 @@ import { RetailEditor, retailSample } from "../retail/RetailEditor";
 import { RackDiagram } from "./RackDiagram";
 import { PrinterIcon } from "./PrinterIcon";
 import { ZebraPrinter } from "./ZebraPrinter";
+import { printerHttpUrl } from "./httpPrinter";
+import { PrinterLinkDialog } from "./PrinterLinkDialog";
+import { HTTP_PRINTER_STORE } from "./WebZebraPrinter";
 import { checkedDocument, createZpl } from "./output";
 import { text, type WarehouseKey } from "./i18n";
 import { isRTL, type HomeKey } from "../home/i18n";
@@ -59,7 +62,24 @@ export function Warehouse({
   const [incomingRetail, setIncomingRetail] = useState<{ text: string } | null>(
     null,
   );
-  const [project, setProject] = useState<WarehouseProject>(() => {
+  const [project, setProject] = useState<WarehouseProject>(loadProject);
+  // A ?printer=<ip> link only proposes an address. Nothing is adopted until the
+  // connection dialog has shown what answers there and the user accepts it.
+  const [linkedHost, setLinkedHost] = useState(() => {
+    if (desktop) return "";
+    try {
+      const host = new URLSearchParams(window.location.search)
+        .get("printer")
+        ?.trim();
+      if (!host) return "";
+      printerHttpUrl({ host, port: 80 });
+      return host;
+    } catch {
+      return "";
+    }
+  });
+  const [printerEpoch, setPrinterEpoch] = useState(0);
+  function loadProject(): WarehouseProject {
     try {
       const v = localStorage.getItem(store);
       if (v) {
@@ -84,7 +104,7 @@ export function Warehouse({
       if (retail) loadError.current = true;
     }
     return newProject();
-  });
+  }
   const [storageBlocked, setStorageBlocked] = useState(loadError.current);
   const [page, setPage] = useState(0),
     [listPage, setListPage] = useState(0),
@@ -410,6 +430,32 @@ export function Warehouse({
       setNotice(fail(e));
     }
   };
+  const closePrinterLink = (use: boolean) => {
+    const location = new URL(window.location.href);
+    location.searchParams.delete("printer");
+    window.history.replaceState(window.history.state, "", location);
+    if (use) {
+      try {
+        localStorage.setItem(
+          HTTP_PRINTER_STORE,
+          JSON.stringify({ host: linkedHost, port: 80 }),
+        );
+      } catch {}
+      if (project.printer === "office")
+        patch({
+          printer: "zebra",
+          paper: { ...presets["roll-1"] },
+          dpi: 300,
+          start: 0,
+          offsetX: 0,
+          offsetY: 0,
+        });
+      else if (project.printer !== "zebra") patch({ printer: "zebra" });
+      // Remount the panel so it picks the accepted address up from storage.
+      setPrinterEpoch((n) => n + 1);
+    }
+    setLinkedHost("");
+  };
   const selectPrinter = (printer: "office" | "thermal") => {
     if ((printer === "office") === (project.printer === "office")) return;
     patch({
@@ -670,8 +716,16 @@ export function Warehouse({
             );
           })}
         </div>
+        {linkedHost && (
+          <PrinterLinkDialog
+            language={language}
+            host={linkedHost}
+            onClose={closePrinterLink}
+          />
+        )}
         {project.printer === "zebra" && (
           <ZebraPrinter
+            key={printerEpoch}
             language={language}
             desktop={desktop}
             project={project}

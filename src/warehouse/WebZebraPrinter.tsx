@@ -9,17 +9,12 @@ import {
 } from "./httpPrinter";
 import { text, type WarehouseKey } from "./i18n";
 import { AdjustmentInput } from "../home/AdjustmentInput";
+import { PdfDrop } from "./PdfDrop";
+import type { PdfLabel } from "./pdfLabel";
 
-const STORE = "barcodemate.warehouse.http.v1";
+export const HTTP_PRINTER_STORE = "barcodemate.warehouse.http.v1";
+const STORE = HTTP_PRINTER_STORE;
 function savedAddress() {
-  const linkedHost = new URLSearchParams(window.location.search).get("printer");
-  if (linkedHost) {
-    const address = { host: linkedHost.trim(), port: 80 };
-    try {
-      printerHttpUrl(address);
-      return address;
-    } catch {}
-  }
   try {
     const stored = localStorage.getItem(STORE);
     const value = JSON.parse(
@@ -115,12 +110,6 @@ export function WebZebraPrinter({
     try {
       localStorage.setItem(STORE, JSON.stringify(address));
     } catch {}
-    // Consume a valid shared printer address once; later edits should survive reloads.
-    const location = new URL(window.location.href);
-    if (location.searchParams.get("printer")?.trim() === address.host && url) {
-      location.searchParams.delete("printer");
-      window.history.replaceState(window.history.state, "", location);
-    }
   }, [address]);
   useEffect(() => {
     setConfirmed(false);
@@ -153,6 +142,44 @@ export function WebZebraPrinter({
           return;
         try {
           await sendHttpPrinter(address, zpl);
+          setNotice("httpSent");
+        } catch {
+          setNotice("httpSendFailed");
+        }
+      } finally {
+        sending.current = false;
+        setConfirmed(false);
+      }
+    });
+  };
+
+  // A PDF replaces the designed labels, so only the connection, the roll
+  // medium and the confirmation gate it, not the label layout.
+  const pdfBlocked: WarehouseKey | null =
+    !url || !current?.ok
+      ? status
+      : project.paper.medium !== "roll"
+        ? "checkLayoutInvalid"
+        : !confirmed
+          ? "httpConfirmRequired"
+          : null;
+  const sendPdf = (label: PdfLabel) => {
+    if (pdfBlocked || sending.current) return;
+    sending.current = true;
+    void run(async () => {
+      try {
+        setNotice(null);
+        if (
+          !window.confirm(
+            `${t("confirmSend")}\n${url}/pstprnt\n${label.name}\n${label.pages} ${t("page")}`,
+          )
+        )
+          return;
+        try {
+          // One request per page keeps each job within the size the printer
+          // accepts, and stops at the first page that fails.
+          for (let page = 1; page <= label.pages; page++)
+            await sendHttpPrinter(address, await label.zpl(page));
           setNotice("httpSent");
         } catch {
           setNotice("httpSendFailed");
@@ -209,6 +236,8 @@ export function WebZebraPrinter({
         )}
       </div>
       <p className="hm-hint">{t("httpCheckHelp")}</p>
+      <div className="wh-http-body">
+      <div>
       {url && (
         <dl className="wh-device">
           <div>
@@ -268,6 +297,15 @@ export function WebZebraPrinter({
         >
           {t("httpSendAll")}
         </button>
+      </div>
+      </div>
+      <PdfDrop
+        language={language}
+        paper={project.paper}
+        dpi={project.dpi}
+        blockedReason={pdfBlocked}
+        send={sendPdf}
+      />
       </div>
       {notice && (
         <p className="wh-notice" role="status">

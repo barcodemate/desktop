@@ -18,6 +18,74 @@ const en = {
     "Could not reach the printer from this browser. Check the IP address, HTTP port and local network permission, then check again.",
   httpPort: "HTTP port",
   httpOpenPrinter: "Open printer page",
+  pdfTitle:
+    "Print a PDF file",
+  pdfDrop:
+    "Drop a PDF here, or click to choose one",
+  pdfReading:
+    "Reading the PDF…",
+  pdfError:
+    "This file could not be read as a PDF.",
+  pdfTooLarge:
+    "This PDF is too large. Use a file under 20 MB with at most 50 pages.",
+  pdfActualSize:
+    "printed at actual size",
+  pdfShrunk:
+    "shrunk to fit the selected label:",
+  pdfMono:
+    "This is the first page as the printer will receive it: black and white only, one label per page.",
+  pdfSend:
+    "Send PDF (ZPL)",
+  pdfConfirmRequired:
+    "The PDF is ready and will be converted to ZPL when sent. To enable the button, tick “I verified this is my Zebra ZPL printer…” in this panel.",
+  pdfRemove:
+    "Remove",
+  pdfLocal:
+    "The file is processed in this browser and sent only to your printer. It is not uploaded.",
+  linkTitle:
+    "Trying to connect to",
+  linkStepPermission:
+    "Can the browser reach your local network?",
+  linkStepReach:
+    "Does this address answer?",
+  linkStepIdentify:
+    "What kind of device is it?",
+  linkWaiting:
+    "Not checked yet.",
+  linkChecking:
+    "Checking…",
+  linkSkipped:
+    "Not checked, because an earlier step failed.",
+  linkPermGranted:
+    "Yes, local network access is allowed for this site.",
+  linkPermPrompt:
+    "Your browser is asking. Choose Allow in its prompt.",
+  linkPermPending:
+    "Still waiting for your answer. Choose Allow in the browser prompt, then try again.",
+  linkPermUndecided:
+    "Not decided yet. The browser asks the first time this page reaches a local address.",
+  linkPermDenied:
+    "No, it is blocked for this site. Open the site settings from the address bar, allow local network access, then try again.",
+  linkPermUnknown:
+    "This browser cannot report the permission, so the next step simply tries. Chrome and Edge work best.",
+  linkReachOk:
+    "Yes, a device answered over HTTP.",
+  linkReachFail:
+    "No answer within 8 seconds. Check that the printer is on, that it is on the same network as this computer, and that the address is right.",
+  linkIdentifyZebra:
+    "A Zebra printer. This page cannot read its model or resolution, so check the dpi setting yourself.",
+  linkIdentifyUnknown:
+    "Something answered, but it does not look like a Zebra printer. Open the device page to see what it is.",
+  linkUse:
+    "Use this printer",
+  linkUseAnyway:
+    "Use it as a Zebra printer anyway",
+  linkRetry:
+    "Try again",
+  linkCancel:
+    "Cancel",
+  linkNothingPrinted:
+    "These checks only read from the device. Nothing is printed.",
   httpCheckHelp:
     "This read-only check does not print. Allow local network access if the browser asks. An HTTP response does not confirm ZPL support; check the printer page and try one page first.",
   httpDestination: "ZPL destination",
@@ -200,6 +268,74 @@ const zh: Record<keyof typeof en, string> = {
     "浏览器无法连接打印机。请检查 IP、HTTP 端口及本地网络访问权限，再重新检查。",
   httpPort: "HTTP 端口",
   httpOpenPrinter: "打开打印机页面",
+  pdfTitle:
+    "打印 PDF 文件",
+  pdfDrop:
+    "把 PDF 拖到这里，或点击选择文件",
+  pdfReading:
+    "正在读取 PDF…",
+  pdfError:
+    "无法把这个文件读取为 PDF。",
+  pdfTooLarge:
+    "这个 PDF 太大。请使用小于 20 MB、不超过 50 页的文件。",
+  pdfActualSize:
+    "按实际尺寸打印",
+  pdfShrunk:
+    "已缩小以适合所选标签：",
+  pdfMono:
+    "这是打印机将收到的第一页效果：只有黑白两色，每页打印一张标签。",
+  pdfSend:
+    "发送 PDF（ZPL）",
+  pdfConfirmRequired:
+    "PDF 已就绪，发送时会自动转换成 ZPL。要启用按钮，请先勾选本面板里的“我已确认这是我的 Zebra ZPL 打印机…”。",
+  pdfRemove:
+    "移除",
+  pdfLocal:
+    "文件只在本浏览器内处理，并直接发给你的打印机，不会上传。",
+  linkTitle:
+    "尝试连接",
+  linkStepPermission:
+    "浏览器能否访问本地网络？",
+  linkStepReach:
+    "这个地址有响应吗？",
+  linkStepIdentify:
+    "这是什么设备？",
+  linkWaiting:
+    "尚未检查。",
+  linkChecking:
+    "检查中…",
+  linkSkipped:
+    "前面的步骤没有通过，未检查。",
+  linkPermGranted:
+    "可以，本站已获准访问本地网络。",
+  linkPermPrompt:
+    "浏览器正在询问，请在它弹出的提示里选择“允许”。",
+  linkPermPending:
+    "还在等你回答。请在浏览器提示里选择“允许”，然后重试。",
+  linkPermUndecided:
+    "尚未决定。本页面第一次访问本地地址时，浏览器会询问。",
+  linkPermDenied:
+    "不能，本站被禁止访问本地网络。请点地址栏左侧的站点设置，把“本地网络访问”改为允许，然后重试。",
+  linkPermUnknown:
+    "此浏览器无法查询这项权限，下一步会直接尝试。建议使用 Chrome 或 Edge。",
+  linkReachOk:
+    "有，设备通过 HTTP 作出了应答。",
+  linkReachFail:
+    "8 秒内没有应答。请确认打印机已开机、与这台电脑在同一网络，并且地址正确。",
+  linkIdentifyZebra:
+    "是 Zebra 打印机。本页面读不到它的型号和分辨率，请自行核对 dpi 设置。",
+  linkIdentifyUnknown:
+    "有设备应答，但看起来不是 Zebra 打印机。请打开设备页面确认它是什么。",
+  linkUse:
+    "使用这台打印机",
+  linkUseAnyway:
+    "仍按 Zebra 打印机使用",
+  linkRetry:
+    "重试",
+  linkCancel:
+    "取消",
+  linkNothingPrinted:
+    "以上检查只读取设备信息，不会打印任何内容。",
   httpCheckHelp:
     "此检查为只读，不会打印。如浏览器询问，请允许访问本地网络。收到 HTTP 响应不代表支持 ZPL；请打开打印机页面核对，并先打印一页。",
   httpDestination: "ZPL 发送地址",
@@ -367,6 +503,74 @@ const hant: Record<keyof typeof en, string> = {
     "瀏覽器無法連接印表機。請檢查 IP、HTTP 連接埠及本機網路存取權限，再重新檢查。",
   httpPort: "HTTP 連接埠",
   httpOpenPrinter: "開啟印表機頁面",
+  pdfTitle:
+    "列印 PDF 檔案",
+  pdfDrop:
+    "將 PDF 拖到這裡，或點擊選擇檔案",
+  pdfReading:
+    "正在讀取 PDF…",
+  pdfError:
+    "無法將這個檔案讀取為 PDF。",
+  pdfTooLarge:
+    "這個 PDF 太大。請使用小於 20 MB、不超過 50 頁的檔案。",
+  pdfActualSize:
+    "依實際尺寸列印",
+  pdfShrunk:
+    "已縮小以符合所選標籤：",
+  pdfMono:
+    "這是印表機將收到的第一頁效果：只有黑白兩色，每頁列印一張標籤。",
+  pdfSend:
+    "傳送 PDF（ZPL）",
+  pdfConfirmRequired:
+    "PDF 已就緒，傳送時會自動轉換成 ZPL。要啟用按鈕，請先勾選本面板中的「我已確認這是我的 Zebra ZPL 印表機…」。",
+  pdfRemove:
+    "移除",
+  pdfLocal:
+    "檔案只在本瀏覽器內處理，並直接傳給你的印表機，不會上傳。",
+  linkTitle:
+    "嘗試連線",
+  linkStepPermission:
+    "瀏覽器能否存取本機網路？",
+  linkStepReach:
+    "這個位址有回應嗎？",
+  linkStepIdentify:
+    "這是什麼裝置？",
+  linkWaiting:
+    "尚未檢查。",
+  linkChecking:
+    "檢查中…",
+  linkSkipped:
+    "前面的步驟沒有通過，未檢查。",
+  linkPermGranted:
+    "可以，本站已獲准存取本機網路。",
+  linkPermPrompt:
+    "瀏覽器正在詢問，請在它跳出的提示中選擇「允許」。",
+  linkPermPending:
+    "還在等你回答。請在瀏覽器提示中選擇「允許」，然後重試。",
+  linkPermUndecided:
+    "尚未決定。本頁面第一次存取本機位址時，瀏覽器會詢問。",
+  linkPermDenied:
+    "不能，本站被禁止存取本機網路。請點網址列左側的網站設定，將「本機網路存取」改為允許，然後重試。",
+  linkPermUnknown:
+    "此瀏覽器無法查詢這項權限，下一步會直接嘗試。建議使用 Chrome 或 Edge。",
+  linkReachOk:
+    "有，裝置透過 HTTP 作出了回應。",
+  linkReachFail:
+    "8 秒內沒有回應。請確認印表機已開機、與這台電腦在同一網路，而且位址正確。",
+  linkIdentifyZebra:
+    "是 Zebra 印表機。本頁面讀不到它的型號和解析度，請自行核對 dpi 設定。",
+  linkIdentifyUnknown:
+    "有裝置回應，但看起來不是 Zebra 印表機。請開啟裝置頁面確認它是什麼。",
+  linkUse:
+    "使用這台印表機",
+  linkUseAnyway:
+    "仍當作 Zebra 印表機使用",
+  linkRetry:
+    "重試",
+  linkCancel:
+    "取消",
+  linkNothingPrinted:
+    "以上檢查只讀取裝置資訊，不會列印任何內容。",
   httpCheckHelp:
     "此檢查為唯讀，不會列印。如瀏覽器詢問，請允許存取本機網路。收到 HTTP 回應不代表支援 ZPL；請開啟印表機頁面核對，並先列印一頁。",
   httpDestination: "ZPL 傳送位址",

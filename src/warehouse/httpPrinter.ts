@@ -89,3 +89,47 @@ export async function sendHttpPrinter(
     sending = false;
   }
 }
+
+export type LocalNetworkPermission = "granted" | "prompt" | "denied" | "unknown";
+
+// Chromium reports whether this site may reach private addresses. Other
+// browsers have no such permission to query, so the answer is "unknown".
+export async function localNetworkPermission(
+  onChange?: () => void,
+): Promise<LocalNetworkPermission> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "local-network-access" as PermissionName,
+    });
+    if (onChange) status.onchange = onChange;
+    return status.state;
+  } catch {
+    return "unknown";
+  }
+}
+
+// The page cannot read a cross-origin printer page, but it can tell whether an
+// image exists. Zebra print servers serve /logo.png on their home page and
+// answer 404 for unknown paths, so a decoded image there marks a Zebra printer.
+// It does not reveal the model, resolution or ZPL support.
+export function identifyHttpPrinter(
+  address: HttpPrinterAddress,
+  signal?: AbortSignal,
+): Promise<"zebra" | "unknown"> {
+  const base = printerHttpUrl(address);
+  return new Promise((resolve) => {
+    const image = new Image();
+    const finish = (kind: "zebra" | "unknown") => {
+      clearTimeout(timer);
+      image.onload = image.onerror = null;
+      image.src = "";
+      resolve(kind);
+    };
+    const timer = setTimeout(() => finish("unknown"), 8000);
+    signal?.addEventListener("abort", () => finish("unknown"), { once: true });
+    image.referrerPolicy = "no-referrer";
+    image.onload = () => finish(image.naturalWidth > 0 ? "zebra" : "unknown");
+    image.onerror = () => finish("unknown");
+    image.src = `${base}/logo.png?t=${Date.now()}`;
+  });
+}
