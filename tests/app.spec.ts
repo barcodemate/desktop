@@ -95,6 +95,33 @@ test("sequence to batch to two-page print PDF with real dimensions", async () =>
   });
   await writeFile("test-results/labels.pdf", pdf);
 });
+// Reported from 0.5.4: 137 labels exported and 138 failed with ERR_INVALID_URL,
+// because the print document travelled inside a data: URL, which Chromium caps.
+test("a print PDF of several hundred labels is exported", async () => {
+  await page.getByRole("button", { name: "Batch data", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Generate sequence", exact: true })
+    .click();
+  await page.getByLabel("How many?", { exact: true }).fill("600");
+  await page.getByLabel("Prefix", { exact: true }).fill("SKU-");
+  await page
+    .getByRole("button", { name: "Create sequence", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Arrange labels", exact: true })
+    .click();
+  await saveTo(path.join(temp, "many.pdf"));
+  await page
+    .getByRole("button", { name: "Export print-ready PDF", exact: true })
+    .click();
+  await expect(page.locator(".toast")).toContainText("PDF saved", {
+    timeout: 60_000,
+  });
+  const pdf = await readFile(path.join(temp, "many.pdf"));
+  expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+  // 600 labels at 21 to a sheet is 29 pages.
+  expect(pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g)).toHaveLength(29);
+});
 test("CSV mapping preserves leading zeros and quantities; invalid row blocks ZIP", async () => {
   await page.getByRole("button", { name: "Batch data", exact: true }).click();
   await page

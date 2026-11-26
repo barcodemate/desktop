@@ -19,6 +19,7 @@ import {
 } from "electron";
 import { readFile, writeFile, rename, mkdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { validateProject, type Project } from "../src/core/model";
 import { languages, negotiateLanguage, translate } from "../src/i18n";
@@ -92,6 +93,10 @@ async function readJSON(file: string) {
     throw e;
   }
 }
+// Print documents wait here for the print window to fetch them once. They are
+// served by the app's own scheme instead of a data: URL, which Chromium caps at
+// about 2 MB: 138 labels on an A4 sheet were already too long to load.
+const printDocuments = new Map<string, string>();
 function secureWindow(options: Electron.BrowserWindowConstructorOptions = {}) {
   const w = new BrowserWindow({
     ...options,
@@ -113,6 +118,17 @@ function secureWindow(options: Electron.BrowserWindowConstructorOptions = {}) {
 app.whenReady().then(async () => {
   protocol.handle("barcodemate", async (request) => {
     const u = new URL(request.url);
+    if (u.hostname === "print") {
+      const html = printDocuments.get(u.pathname.slice(1));
+      return html === undefined
+        ? new Response("Not found", { status: 404 })
+        : new Response(html, {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
+          });
+    }
     if (u.hostname !== "app") return new Response("Not found", { status: 404 });
     let decoded: string;
     try {
@@ -506,10 +522,10 @@ app.whenReady().then(async () => {
           javascript: false,
         },
       });
+      const id = randomUUID();
+      printDocuments.set(id, p.html);
       try {
-        await w.loadURL(
-          "data:text/html;charset=utf-8," + encodeURIComponent(p.html),
-        );
+        await w.loadURL(`barcodemate://print/${id}`);
         if (p.pdf) {
           const out = await w.webContents.printToPDF({
             printBackground: true,
@@ -544,6 +560,7 @@ app.whenReady().then(async () => {
           ),
         );
       } finally {
+        printDocuments.delete(id);
         w.destroy();
       }
     },
