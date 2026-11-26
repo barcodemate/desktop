@@ -737,6 +737,9 @@
 .wh-pdf .hm-actions {
   margin: 10px 0;
 }
+.wh-pdf-blocked p {
+  margin: 0 0 8px;
+}
 .wh-pdf-blocked {
   margin: 0 0 10px;
   padding: 10px 12px;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { DesktopAPI } from "../bridge";
-import type { WarehouseProject } from "./core";
+import type { Paper, WarehouseProject } from "./core";
 import { createZpl } from "./output";
 import { printerIssues, zplBounds } from "./printerCheck";
 import { text } from "./i18n";
@@ -241,10 +241,15 @@ function DesktopZebraPrinter({
   );
 }
 
-export function ZebraPrinter(props: Parameters<typeof DesktopZebraPrinter>[0]) {
+export function ZebraPrinter({
+  usePaper,
+  ...props
+}: Parameters<typeof DesktopZebraPrinter>[0] & {
+  usePaper: (paper: Paper) => void;
+}) {
   return props.desktop ? (
     <DesktopZebraPrinter {...props} />
   ) : (
-    <WebZebraPrinter {...props} />
+    <WebZebraPrinter {...props} usePaper={usePaper} />
   );
 }

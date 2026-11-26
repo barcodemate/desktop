@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import { sampleProject, type WarehouseProject } from "./core";
+import { sampleProject, type Paper, type WarehouseProject } from "./core";
 import { createZpl } from "./output";
 import { zplBounds } from "./printerCheck";
 import {
@@ -36,10 +36,12 @@ export function WebZebraPrinter({
   project,
   disabled,
   run,
+  usePaper,
 }: {
   language: string;
   project: WarehouseProject;
   disabled: boolean;
+  usePaper: (paper: Paper) => void;
   run: (action: () => Promise<void>) => Promise<void>;
 }) {
   const t = (key: WarehouseKey) => text(language, key);
@@ -304,6 +306,9 @@ export function WebZebraPrinter({
         paper={project.paper}
         dpi={project.dpi}
         blockedReason={pdfBlocked}
+        confirmed={confirmed}
+        setConfirmed={setConfirmed}
+        usePaper={usePaper}
         send={sendPdf}
       />
       </div>

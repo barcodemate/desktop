@@ -36,8 +36,10 @@ const en = {
     "This is the first page as the printer will receive it: black and white only, one label per page.",
   pdfSend:
     "Send PDF (ZPL)",
-  pdfConfirmRequired:
-    "The PDF is ready and will be converted to ZPL when sent. To enable the button, tick “I verified this is my Zebra ZPL printer…” in this panel.",
+  pdfMismatch:
+    "The label size set on this page does not match this PDF page, so it would print small or leave the label mostly blank.",
+  pdfUsePageSize:
+    "Set the label size to",
   pdfRemove:
     "Remove",
   pdfLocal:
@@ -286,8 +288,10 @@ const zh: Record<keyof typeof en, string> = {
     "这是打印机将收到的第一页效果：只有黑白两色，每页打印一张标签。",
   pdfSend:
     "发送 PDF（ZPL）",
-  pdfConfirmRequired:
-    "PDF 已就绪，发送时会自动转换成 ZPL。要启用按钮，请先勾选本面板里的“我已确认这是我的 Zebra ZPL 打印机…”。",
+  pdfMismatch:
+    "当前设置的标签尺寸与这份 PDF 的页面尺寸不一致，打印出来会偏小或大片留白。",
+  pdfUsePageSize:
+    "把标签尺寸改为",
   pdfRemove:
     "移除",
   pdfLocal:
@@ -521,8 +525,10 @@ const hant: Record<keyof typeof en, string> = {
     "這是印表機將收到的第一頁效果：只有黑白兩色，每頁列印一張標籤。",
   pdfSend:
     "傳送 PDF（ZPL）",
-  pdfConfirmRequired:
-    "PDF 已就緒，傳送時會自動轉換成 ZPL。要啟用按鈕，請先勾選本面板中的「我已確認這是我的 Zebra ZPL 印表機…」。",
+  pdfMismatch:
+    "目前設定的標籤尺寸與這份 PDF 的頁面尺寸不一致，列印出來會偏小或大片留白。",
+  pdfUsePageSize:
+    "把標籤尺寸改為",
   pdfRemove:
     "移除",
   pdfLocal:

@@ -17,6 +17,7 @@ import {
   WarehouseError,
   type WarehouseProject,
   type Paper,
+  validPaper,
   type Item,
 } from "./core";
 import { RETAIL_STORE, printableItems } from "../retail/model";
@@ -79,6 +80,35 @@ export function Warehouse({
     }
   });
   const [printerEpoch, setPrinterEpoch] = useState(0);
+  // Optional companions of ?printer=: &label=102x152 (mm) and &dpi=203|300,
+  // so a bookmark can carry the stock loaded in that printer.
+  const [linkedSetup] = useState(() => {
+    const setup: { paper?: Paper; dpi?: number } = {};
+    if (desktop) return setup;
+    try {
+      const query = new URLSearchParams(window.location.search);
+      const size = /^(\d{1,3}(?:\.\d)?)[x×*](\d{1,3}(?:\.\d)?)$/i.exec(
+        query.get("label")?.trim() ?? "",
+      );
+      if (size)
+        setup.paper = validPaper({
+          medium: "roll",
+          pageWidth: +size[1],
+          pageHeight: +size[2],
+          width: +size[1],
+          height: +size[2],
+          columns: 1,
+          rows: 1,
+          left: 0,
+          top: 0,
+          gapX: 0,
+          gapY: 0,
+        });
+      const dpi = Number(query.get("dpi"));
+      if (dpi === 203 || dpi === 300) setup.dpi = dpi;
+    } catch {}
+    return setup;
+  });
   function loadProject(): WarehouseProject {
     try {
       const v = localStorage.getItem(store);
@@ -432,7 +462,8 @@ export function Warehouse({
   };
   const closePrinterLink = (use: boolean) => {
     const location = new URL(window.location.href);
-    location.searchParams.delete("printer");
+    for (const key of ["printer", "label", "dpi"])
+      location.searchParams.delete(key);
     window.history.replaceState(window.history.state, "", location);
     if (use) {
       try {
@@ -441,16 +472,16 @@ export function Warehouse({
           JSON.stringify({ host: linkedHost, port: 80 }),
         );
       } catch {}
-      if (project.printer === "office")
+      const office = project.printer === "office";
+      const paper =
+        linkedSetup.paper ?? (office ? { ...presets["roll-1"] } : undefined);
+      const dpi = linkedSetup.dpi ?? (office ? 300 : undefined);
+      if (paper || dpi || project.printer !== "zebra")
         patch({
           printer: "zebra",
-          paper: { ...presets["roll-1"] },
-          dpi: 300,
-          start: 0,
-          offsetX: 0,
-          offsetY: 0,
+          ...(paper && { paper, start: 0, offsetX: 0, offsetY: 0 }),
+          ...(dpi && { dpi }),
         });
-      else if (project.printer !== "zebra") patch({ printer: "zebra" });
       // Remount the panel so it picks the accepted address up from storage.
       setPrinterEpoch((n) => n + 1);
     }
@@ -733,6 +764,9 @@ export function Warehouse({
               storageBlocked || !view?.total || !!result.error || !!metricsError
             }
             run={run}
+            usePaper={(paper) =>
+              patch({ paper, start: 0, offsetX: 0, offsetY: 0 })
+            }
             onSent={() => setNotice(t("sent"))}
           />
         )}

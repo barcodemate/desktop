@@ -10,6 +10,9 @@ export function PdfDrop({
   paper,
   dpi,
   blockedReason,
+  confirmed,
+  setConfirmed,
+  usePaper,
   send,
 }: {
   language: string;
@@ -17,6 +20,10 @@ export function PdfDrop({
   dpi: number;
   // Why sending is not possible yet, or null when it is.
   blockedReason: WarehouseKey | null;
+  // The same confirmation as the panel's own, shown next to this send button.
+  confirmed: boolean;
+  setConfirmed: (value: boolean) => void;
+  usePaper: (paper: Paper) => void;
   send: (label: PdfLabel) => void;
 }) {
   const t = (key: WarehouseKey) => text(language, key);
@@ -64,6 +71,19 @@ export function PdfDrop({
     setFile(chosen);
   };
   const mm = (n: number) => Math.round(n * 10) / 10;
+  // The PDF page is the label: offer its size when the page was shrunk to fit
+  // or would leave most of a larger label blank.
+  const pageSize = label && {
+    width: Math.round(label.widthMm),
+    height: Math.round(label.heightMm),
+  };
+  const mismatch =
+    !!label &&
+    !!pageSize &&
+    [pageSize.width, pageSize.height].every((n) => n >= 8 && n <= 600) &&
+    (label.scale < 1 ||
+      paper.pageWidth - label.widthMm > 5 ||
+      paper.pageHeight - label.heightMm > 5);
 
   return (
     <div className="wh-pdf" data-testid="pdf-drop">
@@ -113,7 +133,41 @@ export function PdfDrop({
               ? `${t("pdfShrunk")} ${Math.round(label.scale * 100)}%`
               : t("pdfActualSize")}
           </p>
+          {mismatch && pageSize && (
+            <div className="wh-pdf-blocked" role="status" data-testid="pdf-mismatch">
+              <p>{t("pdfMismatch")}</p>
+              <button
+                onClick={() =>
+                  usePaper({
+                    medium: "roll",
+                    pageWidth: pageSize.width,
+                    pageHeight: pageSize.height,
+                    width: pageSize.width,
+                    height: pageSize.height,
+                    columns: 1,
+                    rows: 1,
+                    left: 0,
+                    top: 0,
+                    gapX: 0,
+                    gapY: 0,
+                  })
+                }
+              >
+                {t("pdfUsePageSize")} {pageSize.width} × {pageSize.height} mm
+              </button>
+            </div>
+          )}
           <p className="hm-hint">{t("pdfMono")}</p>
+          {(!blockedReason || blockedReason === "httpConfirmRequired") && (
+            <label className="hm-check">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+              />
+              {t("httpConfirm")}
+            </label>
+          )}
           <div className="hm-actions">
             <button
               className="hm-primary"
@@ -124,13 +178,9 @@ export function PdfDrop({
             </button>
             <button onClick={() => setFile(null)}>{t("pdfRemove")}</button>
           </div>
-          {blockedReason && (
+          {blockedReason && blockedReason !== "httpConfirmRequired" && (
             <p className="wh-pdf-blocked" role="status">
-              {t(
-                blockedReason === "httpConfirmRequired"
-                  ? "pdfConfirmRequired"
-                  : blockedReason,
-              )}
+              {t(blockedReason)}
             </p>
           )}
         </>
