@@ -90,7 +90,8 @@ export function encode(d: Design) {
     textsize: (d.textSize * d.dpi) / (72 * scale),
     textxalign: d.textAlign,
     barcolor: d.foreground.slice(1),
-    backgroundcolor: d.background.slice(1),
+    // Without a colour the encoder draws no backing rectangle at all.
+    ...(d.transparent ? {} : { backgroundcolor: d.background.slice(1) }),
     textcolor: d.foreground.slice(1),
     paddingleft: (d.quietX * d.dpi) / (25.4 * scale),
     paddingright: (d.quietX * d.dpi) / (25.4 * scale),
@@ -150,7 +151,13 @@ export function encode(d: Design) {
     [width, height] = [height, width];
   }
   const warnings: string[] = [];
-  if (contrast(d.foreground, d.background) < 4.5)
+  // What ends up behind a transparent barcode is unknown here, so say what it
+  // needs instead of comparing against a background that will not be drawn.
+  if (d.transparent)
+    warnings.push(
+      "Transparent background. Place the barcode on a plain, light surface and test a printed sample.",
+    );
+  else if (contrast(d.foreground, d.background) < 4.5)
     warnings.push(
       "Low color contrast. Prefer dark bars on a light background.",
     );
@@ -169,7 +176,7 @@ export function encode(d: Design) {
     warnings.push(
       `Module width aligned to ${pixelsPerModule} printer dots (${actualModule.toFixed(3)} mm).`,
     );
-  svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${(width * 25.4) / d.dpi}mm" height="${(height * 25.4) / d.dpi}mm" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="${d.background}"/>${inner}</svg>`;
+  svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${(width * 25.4) / d.dpi}mm" height="${(height * 25.4) / d.dpi}mm" viewBox="0 0 ${width} ${height}">${d.transparent ? "" : `<rect width="100%" height="100%" fill="${d.background}"/>`}${inner}</svg>`;
   return {
     svg,
     width,

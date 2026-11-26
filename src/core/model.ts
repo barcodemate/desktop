@@ -13,6 +13,8 @@ export interface Design {
   rotation: 0 | 90 | 180 | 270;
   foreground: string;
   background: string;
+  // Absent in projects saved before 0.5.5, which stay opaque.
+  transparent?: boolean;
   showText: boolean;
   textSize: number;
   textAlign: "left" | "center" | "right";
@@ -185,6 +187,9 @@ export function validateDesign(d: Design) {
     "hexInput",
   ] as const)
     if (typeof d[k] !== "boolean") throw Error(`Invalid ${k}.`);
+  for (const k of ["transparent"] as const)
+    if (d[k] !== undefined && typeof d[k] !== "boolean")
+      throw Error(`Invalid ${k}.`);
   if (
     d.logo &&
     (!/^data:image\/(png|jpeg);base64,[a-z0-9+/=]+$/i.test(d.logo) ||

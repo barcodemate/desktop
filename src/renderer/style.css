@@ -515,6 +515,10 @@ h1 {
   max-width: 95%;
   transition: transform 0.15s;
 }
+/* A checkerboard, so a transparent barcode does not look like a white one. */
+.barcode-paper.see-through {
+  background: repeating-conic-gradient(#e3e7ee 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+}
 .barcode-paper > svg {
   width: 100%;
   height: auto;

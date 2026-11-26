@@ -1487,6 +1487,20 @@ function App() {
                       0.01,
                     )}
                   </div>
+                  <label className="check-field">
+                    <input
+                      type="checkbox"
+                      data-testid="transparent-background"
+                      checked={!!project.design.transparent}
+                      onChange={(e) =>
+                        design({ transparent: e.target.checked })
+                      }
+                    />
+                    {L(
+                      "Transparent background (SVG and PNG)",
+                      "透明背景（SVG 和 PNG）",
+                    )}
+                  </label>
                   {(
                     [
                       "dotty",
@@ -1579,7 +1593,11 @@ function App() {
                     <div className="ruler side-ruler" />
                     {result.value ? (
                       <div
-                        className="barcode-paper"
+                        className={
+                          project.design.transparent
+                            ? "barcode-paper see-through"
+                            : "barcode-paper"
+                        }
                         style={{ transform: `scale(${zoom})` }}
                         dangerouslySetInnerHTML={{ __html: result.value.svg }}
                       />

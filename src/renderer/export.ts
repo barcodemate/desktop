@@ -7,7 +7,9 @@ import {
   type ExportFormat,
   type Row,
 } from "../core/model";
-export async function raster(d: Design) {
+// Only PNG keeps the transparency; the other raster formats have no alpha
+// channel here and are filled with the chosen background colour.
+export async function raster(d: Design, alpha = false) {
   const result = encode(d);
   const image = new Image();
   const url = URL.createObjectURL(
@@ -24,8 +26,10 @@ export async function raster(d: Design) {
     canvas.height = Math.ceil(result.height);
     const ctx = canvas.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = d.background;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!(alpha && d.transparent)) {
+      ctx.fillStyle = d.background;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     return { canvas, ctx, result };
   } finally {
@@ -142,7 +146,7 @@ export async function imageBytes(
   format: Exclude<ExportFormat, "pdf">,
 ) {
   if (format === "svg") return strToU8(encode(d).svg);
-  const { canvas, ctx } = await raster(d);
+  const { canvas, ctx } = await raster(d, format === "png");
   if (format === "bmp" || format === "tiff") {
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     return format === "bmp"

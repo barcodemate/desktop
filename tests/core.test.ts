@@ -5,6 +5,7 @@ import {
   newProject,
   defaultDesign,
   validateProject,
+  validateDesign,
   validateLayout,
   safeName,
   rowFrom,
@@ -28,6 +29,22 @@ test("108 format samples encode with finite physical dimensions", () => {
     assert.ok(!r.svg.includes("NaN"), type.id);
   }
   assert.equal(catalog.length, 108);
+});
+test("a transparent background draws no backing rectangle, and only when asked", () => {
+  const opaque = encode(defaultDesign());
+  assert.match(opaque.svg, /<rect width="100%" height="100%" fill="#ffffff"/);
+  const clear = encode({ ...defaultDesign(), transparent: true });
+  assert.ok(!/<rect[^>]*width="100%"/.test(clear.svg));
+  assert.ok(!clear.svg.toLowerCase().includes("#ffffff"));
+  assert.equal(clear.width, opaque.width);
+  assert.equal(clear.height, opaque.height);
+  assert.ok(clear.warnings.some((w) => w.startsWith("Transparent background.")));
+  assert.ok(!opaque.warnings.some((w) => w.startsWith("Transparent background.")));
+  // A project saved by an earlier version has no such field and stays valid.
+  const saved = defaultDesign();
+  assert.equal("transparent" in saved, false);
+  assert.doesNotThrow(() => validateDesign(saved));
+  assert.throws(() => validateDesign({ ...saved, transparent: "yes" as never }));
 });
 test("retail check digits are validated without losing leading zeros", () => {
   assert.equal(checkDigit("01234567890"), "5");

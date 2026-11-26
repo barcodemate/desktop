@@ -8,6 +8,7 @@ import {
 import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { inflateSync } from "node:zlib";
 let app: ElectronApplication, page: Page, temp: string;
 test.beforeEach(async () => {
   temp = await mkdtemp(path.join(os.tmpdir(), "barcodemate-app-"));
@@ -226,6 +227,39 @@ test("all image exporters produce usable files and the local reader decodes expo
   });
 });
 
+test("a transparent background reaches SVG and PNG, and other formats stay opaque", async () => {
+  await page.locator(".design-options summary").click();
+  await page.getByTestId("transparent-background").check();
+  await expect(page.locator(".barcode-paper")).toHaveClass(/see-through/);
+  const out: Record<string, Buffer> = {};
+  for (const format of ["svg", "png", "bmp"]) {
+    const file = path.join(temp, "clear." + format);
+    await saveTo(file);
+    await page.locator(".export-controls select").selectOption(format);
+    await page
+      .getByRole("button", { name: "Export barcode", exact: true })
+      .click();
+    await expect(page.locator(".toast")).toContainText("clear." + format);
+    out[format] = await readFile(file);
+  }
+  expect(out.svg.toString()).not.toMatch(/<rect[^>]*width="100%"/);
+  // PNG: RGBA, and the top-left pixel (in the quiet zone) is fully transparent.
+  const png = out.png;
+  expect(png[25]).toBe(6);
+  const idat: Buffer[] = [];
+  for (let o = 8; o < png.length; ) {
+    const length = png.readUInt32BE(o),
+      kind = png.toString("latin1", o + 4, o + 8);
+    if (kind === "IDAT") idat.push(png.subarray(o + 8, o + 8 + length));
+    o += 12 + length;
+  }
+  const pixels = inflateSync(Buffer.concat(idat));
+  expect([...pixels.subarray(1, 5)]).toEqual([0, 0, 0, 0]);
+  // BMP has no alpha here: its first stored pixel is the background colour.
+  expect([...out.bmp.subarray(54, 57)]).toEqual([255, 255, 255]);
+  await page.getByTestId("transparent-background").uncheck();
+  await expect(page.locator(".barcode-paper")).not.toHaveClass(/see-through/);
+});
 test("a uniform column of digits offers its retail format without blocking the import", async () => {
   await page.getByRole("button", { name: "Batch data", exact: true }).click();
   await page
