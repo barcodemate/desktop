@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { DesktopAPI } from "../bridge";
 import type { Paper, WarehouseProject } from "./core";
 import { createZpl } from "./output";
+import { dotsPerMm } from "./errors";
 import { printerIssues, zplBounds } from "./printerCheck";
 import { text } from "./i18n";
 import { WebZebraPrinter } from "./WebZebraPrinter";
@@ -161,8 +162,8 @@ function DesktopZebraPrinter({
                 <dt>{t("checkDimensions")}</dt>
                 <dd>
                   {device.width} × {device.length} dots
-                  {[203, 300].includes(device.dpi) &&
-                    ` · ${+(device.width / (device.dpi === 203 ? 8 : 12)).toFixed(2)} × ${+(device.length / (device.dpi === 203 ? 8 : 12)).toFixed(2)} mm`}
+                  {[203, 300, 600].includes(device.dpi) &&
+                    ` · ${+(device.width / dotsPerMm(device.dpi)).toFixed(2)} × ${+(device.length / dotsPerMm(device.dpi)).toFixed(2)} mm`}
                 </dd>
               </div>
               {bounds && (

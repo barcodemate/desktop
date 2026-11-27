@@ -1,4 +1,5 @@
 import { dotsPerMm, type Paper } from "./core";
+import { zplUnits } from "./errors";
 import { graphicFields } from "./output";
 
 // pdf.js is large and only needed once a PDF is dropped, so it is served as its
@@ -65,7 +66,7 @@ export async function openPdfLabel(
     throw Error("pdfTooLarge");
   }
   const d = dotsPerMm(dpi),
-    nativeDpi = dpi === 203 ? 200 : 300,
+    nativeDpi = zplUnits(dpi),
     printWidth = Math.round(paper.pageWidth * d),
     labelLength = Math.round(paper.pageHeight * d);
   const draw = async (number: number) => {

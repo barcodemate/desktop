@@ -8,7 +8,9 @@ import {
   type WarehouseProject,
 } from "./core";
 import { printableItems } from "../retail/model";
-export const MAX_ZPL_BYTES = 2_000_000;
+import { zplUnits } from "./errors";
+// Room for one full 4 x 6 in label as a graphic at 600 dpi (about 2.3 MB of hex).
+export const MAX_ZPL_BYTES = 6_000_000;
 // Inspect real font metrics after layout, including glyph fallback for CJK/RTL.
 export async function checkedDocument(project: WarehouseProject) {
   const view = renderWarehouse(project, 0, false);
@@ -182,7 +184,7 @@ export async function createZpl(
   if (w * h > 12_000_000) throw new WarehouseError("sizeError");
   // Direct HTTP jobs must not inherit a previous driver's narrower print width.
   // Set geometry only when sending; never save settings or calibrate the media.
-  const nativeDpi = p.dpi === 203 ? 200 : 300;
+  const nativeDpi = zplUnits(p.dpi);
   const setup = configurePage
     ? `^MUD,${nativeDpi},${nativeDpi}\n^PW${Math.round(paper.pageWidth * d)}\n^LL${Math.round(paper.pageHeight * d)}\n^LS0\n^LT0\n`
     : "";

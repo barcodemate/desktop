@@ -80,7 +80,7 @@ export function Warehouse({
     }
   });
   const [printerEpoch, setPrinterEpoch] = useState(0);
-  // Optional companions of ?printer=: &label=102x152 (mm) and &dpi=203|300,
+  // Optional companions of ?printer=: &label=102x152 (mm) and &dpi=203|300|600,
   // so a bookmark can carry the stock loaded in that printer.
   const [linkedSetup] = useState(() => {
     const setup: { paper?: Paper; dpi?: number } = {};
@@ -105,7 +105,7 @@ export function Warehouse({
           gapY: 0,
         });
       const dpi = Number(query.get("dpi"));
-      if (dpi === 203 || dpi === 300) setup.dpi = dpi;
+      if (dpi === 203 || dpi === 300 || dpi === 600) setup.dpi = dpi;
     } catch {}
     return setup;
   });
@@ -731,10 +731,6 @@ export function Warehouse({
                       onChange={(e) =>
                         patch({
                           printer: e.target.value as "thermal" | "zebra",
-                          dpi:
-                            e.target.value === "zebra" && project.dpi === 600
-                              ? 300
-                              : project.dpi,
                         })
                       }
                     >
@@ -1182,10 +1178,7 @@ export function Warehouse({
                     value={project.dpi}
                     onChange={(e) => patch({ dpi: Number(e.target.value) })}
                   >
-                    {(project.printer === "zebra"
-                      ? [203, 300]
-                      : [203, 300, 600]
-                    ).map((n) => (
+                    {[203, 300, 600].map((n) => (
                       <option key={n}>{n}</option>
                     ))}
                   </select>

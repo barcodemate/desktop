@@ -14,7 +14,7 @@ const fixtures = [
   ["A^~>_B", [104, 33, 62, 94, 30, 63, 34]],
   ["abc\u0001def", [104, 65, 66, 67, 98, 65, 68, 69, 70]],
 ] as const;
-for (const dpi of [203, 300])
+for (const dpi of [203, 300, 600])
   test(`native Code 128 matches preview bars and dimensions at ${dpi} DPI`, () => {
     const p = newWarehouse();
     p.printer = "zebra";

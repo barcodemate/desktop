@@ -209,7 +209,7 @@ export async function checkPrinter(
 ): Promise<PrinterInfo> {
   const device = await readPrinterInfo(input, allowLoopback, timeout);
   if (
-    ![203, 300].includes(device.dpi) ||
+    ![203, 300, 600].includes(device.dpi) ||
     !device.languages.toLowerCase().includes("zpl")
   )
     throw Error("deviceMismatch");
@@ -217,7 +217,7 @@ export async function checkPrinter(
 }
 // Accept only generated graphic/native Code 128 jobs, never arbitrary device commands.
 export function inspectJob(zpl: string) {
-  if (typeof zpl !== "string" || zpl.length < 20 || zpl.length > 2_000_000)
+  if (typeof zpl !== "string" || zpl.length < 20 || zpl.length > 6_000_000)
     throw Error("sizeError");
   const tokens = zpl.match(
     /\^XA\n\^LH0,0\n(?:\^FO\d+,\d+(?:\^GFA,\d+,\d+,\d+,[0-9A-F]+|\^BY\d+,2,\d+\^BCN,\d+,N,N,N,N\^FH_\^FD(?:_[0-9A-F]{2})+)\^FS\n)+\^PQ1\^XZ\n/g,

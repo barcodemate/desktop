@@ -78,7 +78,7 @@ export async function sendHttpPrinter(
   if (
     !zpl.startsWith("^XA\n") ||
     !zpl.endsWith("^PQ1^XZ\n") ||
-    zpl.length > 2_000_000 ||
+    zpl.length > 6_000_000 ||
     /[^\x00-\x7F]/.test(zpl)
   )
     throw Error("invalid");

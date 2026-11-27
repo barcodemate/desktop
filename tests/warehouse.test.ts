@@ -123,16 +123,19 @@ test("negative offsets retain preview and block output; bad items do not erase o
   assert.match(renderWarehouse(p).html, /A-01-01-02/);
   assert.throws(() => renderWarehouse(p, 0, false));
 });
-test("Zebra uses native 8/12 dots per mm and auto chooses QR for narrow labels", () => {
+test("Zebra uses native 8/12/24 dots per mm and auto chooses QR for narrow labels", () => {
   const p = newWarehouse();
   p.printer = "zebra";
   p.paper = { ...presets["roll-3"] };
   assert.equal(labelSymbol(p.lists.shelf[0], p).format, "qrcode");
   assert.equal(dotsPerMm(203), 8);
   assert.equal(dotsPerMm(300), 12);
+  assert.equal(dotsPerMm(600), 24);
   p.dpi = 600;
+  assert.doesNotThrow(() => validateProject(p));
+  p.dpi = 1200;
   assert.throws(() => validateProject(p));
-  assert.throws(() => dotsPerMm(600));
+  assert.throws(() => dotsPerMm(1200));
   p.dpi = 300;
   p.paper = { ...presets["roll-1"] };
   p.lists.shelf[0].name = "<script>alert(1)</script>";
@@ -279,7 +282,7 @@ test("102 by 152 mm roll pages fit two 100 by 75 labels with symmetric margins",
 });
 
 test("warehouse symbols grow with the label while retaining whole-dot modules and quiet zones", () => {
-  for (const dpi of [203, 300]) {
+  for (const dpi of [203, 300, 600]) {
     const p = newWarehouse();
     p.printer = "zebra";
     p.dpi = dpi;
@@ -289,9 +292,10 @@ test("warehouse symbols grow with the label while retaining whole-dot modules an
       /class="ink barcode"[^>]+width="([\d.]+)" height="([\d.]+)" viewBox="0 0 (\d+) (\d+)"/,
     )!;
     assert.equal(symbol.format, "code128");
-    assert(
-      Number(barcode[1]) > (dpi === 203 ? 80 : 85) && Number(barcode[1]) <= 97,
-    );
+    // A native ZPL bar is at most 10 dots wide. At 24 dots per mm that stops
+    // the symbol growing at about 69 mm, where the other two fill the label.
+    const least = dpi === 203 ? 80 : dpi === 300 ? 85 : 65;
+    assert(Number(barcode[1]) > least && Number(barcode[1]) <= 97);
     assert(Number(barcode[2]) > 50 && Number(barcode[2]) < 60);
     assert(
       Math.abs(Number(barcode[1]) * dotsPerMm(dpi) - Number(barcode[3])) <
@@ -303,7 +307,7 @@ test("warehouse symbols grow with the label while retaining whole-dot modules an
     const size = full.svg.match(
       /class="ink barcode"[^>]+width="([\d.]+)" height="([\d.]+)"/,
     )!;
-    assert(Number(size[1]) > (dpi === 203 ? 80 : 85));
+    assert(Number(size[1]) > least);
     assert(Number(size[2]) > 120);
     assert.equal(renderWarehouse(p).rowsShown, 1);
     assert.deepEqual(zplBounds(sampleProject(p)), {
@@ -321,7 +325,7 @@ test("warehouse symbols grow with the label while retaining whole-dot modules an
 
 test("custom code sizes preserve printer dots, QR aspect ratio and old backups", () => {
   for (const printer of ["zebra", "thermal", "office"] as const) {
-    for (const dpi of printer === "zebra" ? [203, 300] : [203, 300, 600]) {
+    for (const dpi of [203, 300, 600]) {
       const p = newWarehouse();
       p.printer = printer;
       p.dpi = dpi;
@@ -436,7 +440,7 @@ test("four margins describe the full paper and editing opposite edges preserves 
 });
 
 test("explicit module dots determine width without shrinking, including odd QR modules", () => {
-  for (const dpi of [203, 300]) {
+  for (const dpi of [203, 300, 600]) {
     const p = newWarehouse();
     p.printer = "zebra";
     p.dpi = dpi;
@@ -444,21 +448,24 @@ test("explicit module dots determine width without shrinking, including odd QR m
     p.lists.shelf = [{ ...p.lists.shelf[0], code: "A1" }];
     for (const format of ["code128", "qrcode"] as const) {
       p.format = format;
-      p.symbolSize = { moduleDots: 5, height: 15 };
+      // The smallest module is a physical width, so it is more dots on a denser head.
+      const small = dpi === 600 ? 8 : 5;
+      p.symbolSize = { moduleDots: small, height: 15 };
       const a = labelSymbol(p.lists.shelf[0], p);
-      assert.equal(a.moduleDots, 5);
-      p.symbolSize.moduleDots = 6;
+      assert.equal(a.moduleDots, small);
+      p.symbolSize.moduleDots = small + 1;
       const b = labelSymbol(p.lists.shelf[0], p);
-      assert.equal(b.moduleDots, 6);
-      assert(Math.abs(a.widthMm / 5 - b.widthMm / 6) < 0.00001);
+      assert.equal(b.moduleDots, small + 1);
+      assert(Math.abs(a.widthMm / small - b.widthMm / (small + 1)) < 0.00001);
       assert(
         Math.abs(
           a.widthMm * dotsPerMm(dpi) - Math.round(a.widthMm * dotsPerMm(dpi)),
         ) < 0.00001,
       );
       if (format === "qrcode") assert.equal(a.widthMm, a.heightMm);
-      else assert.equal(a.heightMm, b.heightMm);
-      p.symbolSize.moduleDots = 32;
+      // The requested height is honoured to within a dot or two of rounding.
+      else assert(Math.abs(a.heightMm - b.heightMm) < 0.2 && a.heightMm <= 15 && b.heightMm <= 15);
+      p.symbolSize.moduleDots = dpi === 600 ? 64 : 32;
       assert.equal(renderWarehouse(p).errors[0].key, "symbolSizeOverflow");
       assert.throws(() => renderWarehouse(p, 0, false), /symbolSizeOverflow/);
       p.symbolSize.moduleDots = 1;

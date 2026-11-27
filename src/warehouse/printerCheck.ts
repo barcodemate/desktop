@@ -37,7 +37,7 @@ export function printerIssues(
   const issues: WarehouseKey[] = [];
   if (!device.languages.toLowerCase().includes("zpl"))
     issues.push("checkLanguageMismatch");
-  if (![203, 300].includes(device.dpi) || device.dpi !== project.dpi)
+  if (![203, 300, 600].includes(device.dpi) || device.dpi !== project.dpi)
     issues.push("checkDpiMismatch");
   try {
     const bounds = zplBounds(project);

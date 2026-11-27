@@ -290,8 +290,7 @@ export function validateProject(p: WarehouseProject): WarehouseProject {
         ? ["auto", "code128", "qrcode", "ean13", "ean8", "upca", "none"]
         : ["auto", "code128", "qrcode"]
     ).includes(p.format) ||
-    ![203, 300, 600].includes(p.dpi) ||
-    (p.printer === "zebra" && ![203, 300].includes(p.dpi))
+    ![203, 300, 600].includes(p.dpi)
   )
     bad();
   const paper = validPaper(p.paper);
